@@ -1,41 +1,73 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import fetch from 'node-fetch';
+import { countReset } from 'console';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "typhon" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('typhon.open', () => {
-		// The code you place here will be executed every time your comma end is executed
-		vscode.window.showInformationMessage('Hello World from Typhon!');
-	});
-
-	context.subscriptions.push(disposable);
-
+	console.log("Typhon extension activated");
+ 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('typhon.test', () => {
-			vscode.commands.executeCommand('editor.action.selectAll').then(() =>{
-				// vscode.commands.executeCommand('editor.action.clipboardCopyAction').then(() =>{
-				// 	vscode.commands.executeCommand('workbench.action.closeActiveEditor').then(() =>{
-				// 		vscode.commands.executeCommand('workbench.action.files.newUntitledFile').then(() =>{
-				// 			vscode.commands.executeCommand('editor.action.clipboardPasteAction');
-				// 		});
-				// 	});
-				// });
+			// vscode.commands.executeCommand('editor.action.selectAll').then(async () => {});
+			const editor = vscode.window.activeTextEditor;
+			if (editor) {
+				editor.edit((editBuilder) => {
+					editBuilder.insert(editor.selection.active, 'Hello World!');
+				});
+			}
+		})
+	);
 
-				const editor = vscode.window.activeTextEditor;
-				if (editor) {
-					// Get whole text in editor
-					console.log(editor.document.getText());
+	context.subscriptions.push(
+		vscode.commands.registerCommand('typhon.run', () => {
+			vscode.commands.executeCommand('editor.action.selectAll').then(async () => {
+				const notebookEditor = vscode.window.activeNotebookEditor;
+				
+				if (notebookEditor) {
+					const currentNotebook = notebookEditor.notebook;
+					const currentSelectionIndex = notebookEditor.selection.start;
+
+					const currentCell = currentNotebook.cellAt(currentSelectionIndex);
+					
+					if (currentCell.kind === vscode.NotebookCellKind.Markup) {
+
+						// prepare data
+						const markdownDesc = currentCell.document.getText();
+
+						// send to middle API
+						const url = 'http://localhost:3030/api/v1/ir';
+						const response = await (await fetch(url, {
+							method: 'POST',
+							headers: {
+      					'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({ query: markdownDesc }),
+						})).json() as IResponse;
+
+						console.log(response);
+						if (!response.error && response.data) {
+							const data = response.data;
+
+							vscode.window.showInformationMessage('Typhon is actived!');
+							vscode.commands.executeCommand('notebook.cell.insertCodeCellBelowAndFocusContainer').then(() => {
+								vscode.commands.executeCommand('editor.action.selectAll').then(() => {
+									const editor = vscode.window.activeTextEditor;
+									if (editor) {
+										editor.edit((editBuilder) => {
+											editBuilder.insert(editor.selection.active, data.hits[0].code);
+										});
+									}
+								});
+							});
+						}
+					}
 				}
+
 			});
 		}
 	));
@@ -43,3 +75,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+
+interface BM25Props {
+	code: string;
+	score: number;
+}
+interface IResponse {
+	error?: string;
+	data?: {
+		totalHits: number;
+		hits: BM25Props[];
+	};
+}
