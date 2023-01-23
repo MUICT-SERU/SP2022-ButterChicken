@@ -3,7 +3,6 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import fetch from 'node-fetch';
-import { countReset } from 'console';
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
@@ -40,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 						const markdownDesc = currentCell.document.getText();
 
 						// send to middle API
-						const url = 'http://localhost:3030/api/v1/ir';
+						const url = 'http://typhon-server.th1.proen.cloud/api/v1/ir';
 						const response = await (await fetch(url, {
 							method: 'POST',
 							headers: {
