@@ -8,6 +8,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const URI = 'http://docker40937-typhon-server.th1.proen.cloud:9200'
+const INDEX = 'pre-eva'
 
 app.post('/api/v1/ir', async (req, res) => {
 
@@ -21,7 +22,7 @@ app.post('/api/v1/ir', async (req, res) => {
     }
   }
 
-  const url = `${URI}/pre-eva/_search?pretty`
+  const url = `${URI}/${INDEX}/_search?pretty`
   const elasticRes = await (await fetch(url, {
     method: "POST",
     headers: {
