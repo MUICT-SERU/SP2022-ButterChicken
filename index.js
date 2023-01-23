@@ -8,7 +8,7 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const URI = 'http://docker40937-typhon-server.th1.proen.cloud:9200'
-const INDEX = 'pre-eva'
+const INDEX = 'pre-test'
 
 app.post('/api/v1/ir', async (req, res) => {
 
@@ -48,7 +48,7 @@ app.post('/api/v1/ir', async (req, res) => {
 });
 
 app.get('/api/v1/ir', (req, res) => {
-  res.status(200).json({ message: 'Hello World' });
+  res.status(200).json({ message: 'Typhon: Hello World' });
 });
 
 app.listen(3030, () => {
