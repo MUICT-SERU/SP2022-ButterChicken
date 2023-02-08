@@ -3,3 +3,5 @@
 Data Preparation/
 text-clustering/TyphonClustering/test.*
 __pycache__/
+.vscode/
+**/result_test.csv
