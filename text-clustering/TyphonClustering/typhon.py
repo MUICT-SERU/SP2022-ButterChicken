@@ -1,11 +1,14 @@
 # from dataclasses import dataclass
 from typing import Iterable
 # Clustering modules
-from scipy.sparse._csr import csr_matrix
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer
+# unixcoder module
+import torch
+from unixcoder import UniXcoder
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Preprocess modules
 import pandas as pd
 import string
@@ -17,6 +20,8 @@ from nltk.stem import WordNetLemmatizer
 from nltk import pos_tag, word_tokenize
 nltk.download('stopwords')
 stopwords = nltk.corpus.stopwords.words('english')
+stopwords.append('‘')
+stopwords.append('’')
 # stopwords[10:20]
 nltk.download('omw-1.4')
 nltk.download('wordnet')
@@ -25,7 +30,9 @@ nltk.download('punkt')
 
 class Typhon:
     def __init__(self) -> None:
-        self.model = AgglomerativeClustering()
+        self.model = UniXcoder("microsoft/unixcoder-base")
+        self.model.to(device)
+        self.clustering_model = AgglomerativeClustering()
         self.tfidf_vectorizer = TfidfVectorizer(stop_words='english')
         self.porter_stemmer = PorterStemmer()
         self.wordnet_lemmatizer = WordNetLemmatizer()
@@ -51,17 +58,17 @@ class Typhon:
     #     markdown_vectorized = self.tfidf_vectorizer.fit_transform(markdown)
     #     return self
         
-    def fit(self, data: csr_matrix):
+    def fit(self, data):
         """Fit(Train) the AgglomerativeClustering model using the given matrix of vectorized data.
         """
         return self
 
-    def predict(self, data: csr_matrix):
+    def predict(self, data):
         """Fit and predict the possible cluster from the given vectorzied Markdown data
         """
         return self
 
-    def preprocess(self, list_mds: list) -> list:
+    def preprocess(self, list_mds) -> list:
         """Preprocess the incoming array of raw Markdown into an array of list of preprocessed tokens.
         """
         # if not (isinstance(list_mds, list)):
@@ -74,6 +81,9 @@ class Typhon:
 
         def remove_tags(text):
             return re.sub(r"<.*?>", " ", text)
+
+        def remove_nonalphabet(text):
+            return re.sub(r'[^a-zA-Z0-9\s]', "", text)
 
         def tokenization(text):
             text = text.lower()
@@ -95,6 +105,7 @@ class Typhon:
             # print(md)
             staging_md = remove_hyperlink(md)
             staging_md = remove_tags(staging_md)
+            staging_md = remove_nonalphabet(staging_md)
             staging_md = tokenization(staging_md)
             staging_md = remove_stopwords(staging_md)
             staging_md = stemming(staging_md)
@@ -103,3 +114,17 @@ class Typhon:
         # print(res_list)
         # print('morning')
         return res_list
+    
+    def generate_embedding(self, markdown_tokens_list: list) -> list:
+        # temp_list = []
+        # for tokens in markdown_tokens_list:
+        #     temp_list.append(" ".join(tokens))
+        # temp_2 = [text[:150] for text in temp_list if len(text)>150]
+        temp_list = [ " ".join(row) for row in markdown_tokens_list]
+
+        tokens_ids = self.model.tokenize(temp_list,max_length=512,mode="<encoder-only>",padding=True)
+        source_ids = torch.tensor(tokens_ids).to(device)
+        tokens_embeddings,content_embedding = self.model(source_ids)
+        embeddings = content_embedding.detach().numpy().tolist()
+        
+        return embeddings
