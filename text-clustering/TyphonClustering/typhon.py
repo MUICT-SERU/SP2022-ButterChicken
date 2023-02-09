@@ -65,46 +65,39 @@ class Typhon:
         if filter_result:
             res_list = list(filter(None, res_list)) # Filter out the empty value
 
-        def tokenization(text):
-            text = text.lower()
-            text = re.sub(f"[{re.escape(string.punctuation)}]", " ", text).strip() # replace punctuation with ' '(space)
-            text = " ".join(text.split()) # remove the excess spaces and newlines
-            return nltk.word_tokenize(text)
-
-        def remove_stopwords(tokens):
-            return [token for token in tokens if token not in stopwords]
-            
-        def stemming(tokens):
-            return [self.porter_stemmer.stem(token) for token in tokens]
-
-        def lemmatizer(tokens):
-            return [self.wordnet_lemmatizer.lemmatize(token) for token in tokens]
-
-        res_list = []
-        for md in list_mds:
-            # print(md)
-            staging_md = remove_hyperlink(md)
-            staging_md = remove_tags(staging_md)
-            staging_md = remove_nonalphabet(staging_md)
-            staging_md = tokenization(staging_md)
-            staging_md = remove_stopwords(staging_md)
-            staging_md = stemming(staging_md)
-            staging_md = lemmatizer(staging_md)
-            res_list.append(staging_md)
-        # print(res_list)
-        # print('morning')
-        return res_list
-    
-    def generate_embedding(self, markdown_tokens_list: list) -> list:
-        # temp_list = []
-        # for tokens in markdown_tokens_list:
-        #     temp_list.append(" ".join(tokens))
-        # temp_2 = [text[:150] for text in temp_list if len(text)>150]
-        temp_list = [ " ".join(row) for row in markdown_tokens_list]
-
-        tokens_ids = self.model.tokenize(temp_list,max_length=512,mode="<encoder-only>",padding=True)
+    def generate_embedding(self, markdown_list):
+        print(type(markdown_list))
+        tokens_ids = self.model.tokenize(markdown_list,max_length=512,mode="<encoder-only>",padding=True)
         source_ids = torch.tensor(tokens_ids).to(device)
         tokens_embeddings,content_embedding = self.model(source_ids)
         embeddings = content_embedding.detach().numpy().tolist()
         
         return embeddings
+    
+    def preprocess_to_csv(self, markdown_list):
+        df = pd.DataFrame({'markdown_content': markdown_list})
+        # Drop empty value from the input list
+        df = df.dropna() 
+        # Preprocess the text
+        preprocessed_text = self.preprocess(df['markdown_content'].tolist())
+
+        # Create a series from the preprocessed text
+        preprocessed_markdown = pd.Series(preprocessed_text, index=df.index)
+
+        # Get the indices of the non-null rows in the preprocessed_markdown series
+        non_null_indices = preprocessed_markdown[preprocessed_markdown.notna()].index
+
+        # Use the indices to select only the non-null rows in the preprocessed_markdown series
+        df = df.loc[non_null_indices,:]
+        preprocessed_markdown = preprocessed_markdown[non_null_indices]
+        df['preprocessed_markdown'] = preprocessed_markdown
+
+        # Remove rows where the preprocessed_markdown column is empty
+        df = df[df['preprocessed_markdown'] != '']
+        preprocessed_markdown = preprocessed_markdown[preprocessed_markdown != '']
+
+        # Add the preprocessed_markdown series as a new column to the DataFrame
+        df['preprocessed_markdown'] = preprocessed_markdown
+        df.to_csv('test-preprocess-to-csv.csv')
+
+        return None
