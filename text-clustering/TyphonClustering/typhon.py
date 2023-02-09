@@ -32,7 +32,7 @@ class Typhon:
     def __init__(self) -> None:
         self.model = UniXcoder("microsoft/unixcoder-base")
         self.model.to(device)
-        self.clustering_model = AgglomerativeClustering()
+        self.clustering_model = AgglomerativeClustering(n_clusters=8, linkage='ward')
         self.tfidf_vectorizer = TfidfVectorizer(stop_words='english')
         self.porter_stemmer = PorterStemmer()
         self.wordnet_lemmatizer = WordNetLemmatizer()
@@ -40,19 +40,34 @@ class Typhon:
         
     def fit(self, data):
         """Fit(Train) the AgglomerativeClustering model using the given matrix of vectorized data.
+
+        Parameters:
+            - (require) data : List< of List<float>> => Input data should be the list of vector from the `generate_embedding` method.
+        
+        Return:
+            - List of cluster labels of input data : List<int>
         """
-        return self
+        self.clustering_model.fit(data)
+
+        return list(self.clustering_model.labels_)
 
     def predict(self, data):
         """Fit and predict the possible cluster from the given vectorzied Markdown data
+
+        Parameters:
+            - (require) data : List< of List<float>> => Input data should be the list of vector from the `generate_embedding` method.
+        
+        Return:
+            - List of cluster labels of input data : List<int>
         """
-        return self
+        return list(self.model.fit_predict(data))
 
     def preprocess(self, list_mds, filter_result=True) -> list:
         """Preprocess the incoming array of raw Markdown into an array of list of preprocessed tokens.
 
         Parameters:
-        filter_result: boolean -> Determine whether to drop items that is an empty value after preprocessing. If set to True, it is possible that the size of returned list may change.
+            - (require) list_mds : List<str>
+            - filter_result: boolean = True(Default) -> Determine whether to drop items that is an empty value after preprocessing. If set to True, it is possible that the size of returned list may change.
         """
         def remove_hyperlink(text):
             text = re.sub(r'https?://\S+', "", text)
@@ -86,7 +101,7 @@ class Typhon:
         return res_list
     
     def generate_embedding(self, markdown_list):
-        print(type(markdown_list))
+        # print(type(markdown_list))
         tokens_ids = self.model.tokenize(markdown_list,max_length=512,mode="<encoder-only>",padding=True)
         source_ids = torch.tensor(tokens_ids).to(device)
         tokens_embeddings,content_embedding = self.model(source_ids)
