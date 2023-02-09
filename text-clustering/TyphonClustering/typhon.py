@@ -36,27 +36,7 @@ class Typhon:
         self.tfidf_vectorizer = TfidfVectorizer(stop_words='english')
         self.porter_stemmer = PorterStemmer()
         self.wordnet_lemmatizer = WordNetLemmatizer()
-    
-    # def vectorizMarkdown(self, markdown: Iterable, method="tfidf") -> csr_matrix:
-    #     """Return the collection of vectorized Markdown text using specified vectorization method.
 
-    #     Default vectorization is Tf-Idf vectorizer. Another vectorizer technique is using CodeBERT.
-
-    #     Parameters
-    #     ----------
-    #     markdown : Iterable
-    #         The collection of markdown to be vectorized.
-    #         If raw text is given, it will automatically be converted to list.
-
-    #     method : {"tfidf", "codebert"}, default='tfidf'
-    #         The approach to vectorize the text. 
-
-    #     Return
-    #     ----------
-    #     Sparse matrix of (n_samples, n_features)
-    #     """
-    #     markdown_vectorized = self.tfidf_vectorizer.fit_transform(markdown)
-    #     return self
         
     def fit(self, data):
         """Fit(Train) the AgglomerativeClustering model using the given matrix of vectorized data.
@@ -68,12 +48,12 @@ class Typhon:
         """
         return self
 
-    def preprocess(self, list_mds) -> list:
+    def preprocess(self, list_mds, filter_result=False) -> list:
         """Preprocess the incoming array of raw Markdown into an array of list of preprocessed tokens.
+
+        Parameters:
+        filter_result: boolean -> Determine whether to drop items that is an empty value after preprocessing. If set to True, it is possible that the size of returned list may change.
         """
-        # if not (isinstance(list_mds, list)):
-        #     raise TypeError("param must be of type <List>")
-            
         def remove_hyperlink(text):
             text = re.sub(r'https?://\S+', "", text)
             text = " ".join(re.sub(r'https?://\S+', "", text).split())
@@ -82,8 +62,8 @@ class Typhon:
         def remove_tags(text):
             return re.sub(r"<.*?>", " ", text)
 
-        def remove_nonalphabet(text):
-            return re.sub(r'[^a-zA-Z0-9\s]', "", text)
+        if filter_result:
+            res_list = list(filter(None, res_list)) # Filter out the empty value
 
         def tokenization(text):
             text = text.lower()
