@@ -8,7 +8,8 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const URI = 'http://docker40937-typhon-server.th1.proen.cloud'
-const INDEX = 'pre-test'
+const INDEX = 'poster'
+// index list: 'pre-test', 'poster'
 
 app.post('/api/v1/ir', async (req, res) => {
 
