@@ -48,7 +48,7 @@ class Typhon:
         """
         return self
 
-    def preprocess(self, list_mds, filter_result=False) -> list:
+    def preprocess(self, list_mds, filter_result=True) -> list:
         """Preprocess the incoming array of raw Markdown into an array of list of preprocessed tokens.
 
         Parameters:
@@ -99,7 +99,7 @@ class Typhon:
         # Drop empty value from the input list
         df = df.dropna() 
         # Preprocess the text
-        preprocessed_text = self.preprocess(df['markdown_content'].tolist())
+        preprocessed_text = self.preprocess(df['markdown_content'].tolist(), filter_result=False)
 
         # Create a series from the preprocessed text
         preprocessed_markdown = pd.Series(preprocessed_text, index=df.index)
