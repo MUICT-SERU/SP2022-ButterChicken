@@ -109,7 +109,7 @@ class Typhon:
         
         return embeddings
     
-    def preprocess_to_csv(self, markdown_list):
+    def preprocess_to_csv(self, markdown_list, name = 'typhon-preprocess-to-csv'):
         df = pd.DataFrame({'markdown_content': markdown_list})
         # Drop empty value from the input list
         df = df.dropna() 
@@ -133,6 +133,7 @@ class Typhon:
 
         # Add the preprocessed_markdown series as a new column to the DataFrame
         df['preprocessed_markdown'] = preprocessed_markdown
-        df.to_csv('test-preprocess-to-csv.csv')
+        filename = f'{name}.csv'
+        df.to_csv(filename)
 
         return None
