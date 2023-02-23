@@ -72,5 +72,5 @@ if __name__ == '__main__':
     # print(embeddings.shape)
 
     df2 = pd.DataFrame({'original': data, 'embeddings': embeddings})
-    df2.to_csv('test-embedding-csv.csv')
+    df2.to_csv('embedding-csv-result.csv')
     # print(len(embeddings))
