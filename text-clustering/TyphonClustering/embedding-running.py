@@ -1,35 +1,22 @@
 import multiprocessing
+from math import ceil
 import os
 import sys
 import pandas as pd
 import numpy as np
 from typhon import Typhon
-# typhon = Typhon()
+typhon = Typhon()
 
-# if not ('typhon-preprocess-to-csv.csv' in os.listdir()):
-#     df = pd.read_csv('./markdown-index.csv')
-#     data = df['markdown_content']
-#     typhon.preprocess_to_csv(data)
-
-# df = pd.read_csv('./typhon-preprocess-to-csv.csv')
-# data = df['preprocessed_markdown'].loc[:400]
-
-def gen_embed(args):
-    model, data = args
-    # print(type(data))
-    embedding = model.generate_embedding([data])
-    return embedding[0]
-
-# embeddings = typhon.generate_embedding(data)
-
-# embeddingsfull = typhon.generate_embedding(datafull)
-# df2 = pd.DataFrame({'original': data, 'embeddings': embeddings})
-# df2.to_csv('test-embedding-csv.csv')
-# print(len(embeddings))
+def gen_embed(data):
+    # model, data = args
+    print(f'data type in get_embed = {type(data)}')
+    embedding = typhon.generate_embedding(data)
+    return embedding
 
 if __name__ == '__main__':
-    model = Typhon()
+    model = typhon
     number = 3
+
     try :
         if (sys.argv[1]):
             number = sys.argv[1]
@@ -46,31 +33,29 @@ if __name__ == '__main__':
         model.preprocess_to_csv(data)
     df = pd.read_csv('./typhon-preprocess-to-csv.csv')
 
-    print(f'number type  = {type(number)}')
+    # print(f'number type  = {type(number)}')
     data = df['preprocessed_markdown'].loc[:int(number)]
-    print(f"data.shape = {data.shape}")
     
-    num_processes = multiprocessing.cpu_count()
-    pool = multiprocessing.Pool(processes=num_processes)
-    print(f'number process = {num_processes}')
+    partition_number = multiprocessing.cpu_count()
+    partition_size = ceil(data.shape[0]/partition_number) if data.shape[0]/partition_number > 1 else 1
+    partitions = [data[i:i+partition_size] for i in range(0, len(data), partition_size)]
+    # print(f"data.shape = {data.shape}")
+    
+    # num_processes = multiprocessing.cpu_count()
+    pool = multiprocessing.Pool(processes=partition_number)
+    print(f'len partitions = {len(partitions)}')
 
-    embeddings = pool.map(gen_embed, [(model, d) for d in data])
+    # print(f'partition type = {type(partitions[0][0])}')
+    # print(partitions[0][0])
+    embeddings = pool.map(gen_embed, partitions)
+
+    final_result = [item for sublist in embeddings for item in sublist]
 
     pool.close()
     pool.join()
 
-    print(len(embeddings))
-    # print(len(embeddings[0]))
-    # print(type(embeddings))
-    # print(embeddings[0])
-    # print(embeddings[0])
-    # embeddings = [", ".join(e) for e in embeddings]
-    # print("==========================================")
+    print(len(final_result))
 
-    # print(type(embeddings))
-    # embeddings = np.concatenate(embeddings)
-    # print(embeddings.shape)
-
-    df2 = pd.DataFrame({'original': data, 'embeddings': embeddings})
+    df2 = pd.DataFrame({'original': data, 'embeddings': final_result})
     df2.to_csv('embedding-csv-result.csv')
     # print(len(embeddings))
