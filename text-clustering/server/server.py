@@ -10,8 +10,8 @@ class Markdown(BaseModel):
     markdown: list
 
 # preprcess api
-@app.get("/preprocess/{markdown}")
-def preprocess(markdown):
+@app.get("/preprocess")
+def preprocess(markdown: str):
     # convert string to list
     mk = [markdown]
     # preprocess markdown
@@ -20,8 +20,8 @@ def preprocess(markdown):
     return data[0]
 
 # embedding api
-@app.get("/embedding/{markdown}")
-def embedding(markdown):
+@app.get("/embedding")
+def embedding(markdown: str):
     # convert string to list
     mk = [markdown]
     # embedding markdown
