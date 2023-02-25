@@ -14,7 +14,7 @@ class Markdown(BaseModel):
 def preprocess(markdown):
     # convert string to list
     mk = [markdown]
-    # process markdown
+    # preprocess markdown
     data = model.preprocess(mk)
     #print(data)
     return data[0]
@@ -32,7 +32,7 @@ def embedding(markdown):
 # preprcess api with json
 @app.post("/preprocessjson/")
 def preprocessJSON(md: Markdown):
-    # process markdown
+    # preprocess markdown
     data = model.preprocess(md.markdown)
     return data[0]
 
