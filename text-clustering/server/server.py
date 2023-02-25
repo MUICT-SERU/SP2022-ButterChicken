@@ -12,34 +12,44 @@ class Markdown(BaseModel):
 # preprcess api
 @app.get("/preprocess")
 def preprocess(markdown: str):
-    # convert string to list
-    mk = [markdown]
-    # preprocess markdown
-    data = model.preprocess(mk)
+    # preprocess markdown by converting to list 
+    data = model.preprocess([markdown])
     #print(data)
-    return data[0]
+    return {
+        'original_markdown': markdown,
+        'preprocessed_markdown' : data[0]
+        }
 
 # embedding api
 @app.get("/embedding")
 def embedding(markdown: str):
-    # convert string to list
-    mk = [markdown]
-    # embedding markdown
-    data = model.generate_embedding(mk)
+    # embedding markdown by convert string to list
+    data = model.generate_embedding([markdown])
     #print(data)
-    return data[0]
+    return {
+        'original_markdown': markdown,
+        'generated_embedding' : data[0]
+        }
 
 # preprcess api with json
-@app.post("/preprocessjson/")
+@app.post("/preprocess/")
 def preprocessJSON(markdown: Markdown):
     # preprocess markdown
-    data = model.preprocess(markdown.markdown)
-    return data[0]
+    data = markdown.markdown
+    result = model.preprocess(data)
+    return {
+        'original_markdowns': data,
+        'generated_embeddings' : result
+        }
 
 # embedding api with json
-@app.post("/embeddingjson/")
+@app.post("/embedding/")
 def embeddingJSON(markdown: Markdown):
     # embedding markdown
-    data = model.generate_embedding(markdown.markdown)
-    return data[0]
+    data = markdown.markdown
+    result = model.generate_embedding(data)
+    return {
+        'original_markdowns': data,
+        'generated_embeddings' : result
+        }
     
