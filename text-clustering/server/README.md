@@ -18,7 +18,7 @@ API documetations are also available [here](http://127.0.0.1:8000/docs) when the
 
 ## Response
 
-    "embedded markdown"
+    [embedded markdown]
 
 # POST
 
@@ -50,4 +50,4 @@ Use `JSON file` as input.
 
 ### Response
 
-    "embedded markdown"
+    [embedded markdown]
