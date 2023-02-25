@@ -31,15 +31,15 @@ def embedding(markdown: str):
 
 # preprcess api with json
 @app.post("/preprocessjson/")
-def preprocessJSON(md: Markdown):
+def preprocessJSON(markdown: Markdown):
     # preprocess markdown
-    data = model.preprocess(md.markdown)
+    data = model.preprocess(markdown.markdown)
     return data[0]
 
 # embedding api with json
 @app.post("/embeddingjson/")
-def embeddingJSON(md: Markdown):
+def embeddingJSON(markdown: Markdown):
     # embedding markdown
-    data = model.generate_embedding(md.markdown)
+    data = model.generate_embedding(markdown.markdown)
     return data[0]
     
