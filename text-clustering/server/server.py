@@ -39,7 +39,7 @@ def preprocessJSON(markdown: Markdown):
     result = model.preprocess(data)
     return {
         'original_markdowns': data,
-        'generated_embeddings' : result
+        'preprocessed_markdown' : result
         }
 
 # embedding api with json
