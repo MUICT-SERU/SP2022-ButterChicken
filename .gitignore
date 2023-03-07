@@ -6,3 +6,4 @@ __pycache__/
 .vscode/
 **/result_test.csv
 **/test**
+node_modules
