@@ -1,6 +1,13 @@
 ---
 version: '3.4'
 services:
+  webserver:
+    image: webserver
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - 81:80
   weaviate:
     command:
       - --host
@@ -10,8 +17,9 @@ services:
       - --scheme
       - http
     image: semitechnologies/weaviate:1.17.5
-    ports:
-      - 8088:8088
+    hostname: weaviate
+    # ports:
+    # - 8088:8088
     restart: on-failure:0
     environment:
       TRANSFORMERS_INFERENCE_API: 'http://t2v-transformers:8088'
@@ -23,5 +31,8 @@ services:
       CLUSTER_HOSTNAME: 'node1'
   t2v-transformers:
     image: text2vec-typhon
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       ENABLE_CUDA: '0'
