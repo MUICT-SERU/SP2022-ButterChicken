@@ -15,11 +15,15 @@ const client = weaviate.client({
     host: 'localhost:8080',
 });
 
+// Search with Text
 app.get('/weaviate', (req, res) => {
     client.graphql
         .get()
-        .withCLassName('Article')
-        .withFields(req.body)
+        .withClassName('Article')
+        .withFields('markdowns')
+        .withNearText({
+            concepts: [req.body.markdown],
+        })
         .do()
         .then(response => {
             console.log(response);
@@ -29,6 +33,26 @@ app.get('/weaviate', (req, res) => {
             console.log(err);
         });          
 });
+
+//Search with Vector
+app.get('/weaviatevector', (req, res) => {
+    client.graphql
+        .get()
+        .withClassName('Article')
+        .withFields('markdowns')
+        .withNearVector({
+            vector: [req.body.vector],
+        })
+        .do()
+        .then(response => {
+            console.log(response);
+            res.send(response);
+        }
+        ).catch(err => {
+            console.log(err);
+        });          
+});
+
 
 app.listen(port, () => {
     console.log(`WeaviateAPI app listening on port ${port}!`)
