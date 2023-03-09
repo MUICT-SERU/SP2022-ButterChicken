@@ -16,7 +16,6 @@ const client = weaviate.client({
 });
 
 app.get('/', (req, res) => {
-	// res.send({ greet: 'Hello world' });
 	const data = {
 		totalHits: 10,
 		hits: [
@@ -33,47 +32,9 @@ app.get('/', (req, res) => {
 	res.status(200).json({
 		greet: 'Hello world',
 		number: 42,
-		data,
+		mock_data,
 	});
 });
-
-// // Search with Text
-// app.get('/weaviate', (req, res) => {
-// 	client.graphql
-// 		.get()
-// 		.withClassName('Article')
-// 		.withFields('markdowns')
-// 		.withNearText({
-// 			concepts: [req.body.markdown],
-// 		})
-// 		.do()
-// 		.then((response) => {
-// 			console.log(response);
-// 			res.send(response);
-// 		})
-// 		.catch((err) => {
-// 			console.log(err);
-// 		});
-// });
-
-// //Search with Vector
-// app.get('/weaviatevector', (req, res) => {
-// 	client.graphql
-// 		.get()
-// 		.withClassName('Article')
-// 		.withFields('markdowns')
-// 		.withNearVector({
-// 			vector: [req.body.vector],
-// 		})
-// 		.do()
-// 		.then((response) => {
-// 			console.log(response);
-// 			res.send(response);
-// 		})
-// 		.catch((err) => {
-// 			console.log(err);
-// 		});
-// });
 
 app.post('/api/v1/ty', async (req, res) => {
 	const nearText = {
@@ -84,28 +45,40 @@ app.post('/api/v1/ty', async (req, res) => {
 		.get()
 		.withClassName('Code')
 		.withNearText(nearText)
-		.withFields('code _additional { certainty }')
+		.withFields('code _additional { id certainty }')
 		.do();
 
 	const code_results = fetchedResult['data']['Get']['Code'].map((item) => ({
-		code: item.code,
-		score: 10,
+		code: item['code'],
+		score: item['_additional']['certainty'],
+		id: item['_additional']['id'],
 	}));
 
 	data = {
-		totalHits: 10,
+		totalHits: code_results.length,
 		hits: code_results,
 	};
-	res.status(200).json(fetchedResult);
+	res.status(200).json(data);
 });
 
 app.get('/api/v1/ty', async (req, res) => {
 	const result = await client.graphql
 		.get()
 		.withClassName('Code')
-		.withFields('code _additional { certainty }')
+		.withFields('code _additional { id }')
 		.do();
-	res.send(result);
+
+	const code_results = result['data']['Get']['Code'].map((item) => ({
+		code: item['code'],
+		score: item['_additional']['certainty'],
+		id: item['_additional']['id'],
+	}));
+
+	data = {
+		totalHits: code_results.length,
+		hits: code_results,
+	};
+	res.status(200).json(data);
 });
 
 app.listen(port, () => {
