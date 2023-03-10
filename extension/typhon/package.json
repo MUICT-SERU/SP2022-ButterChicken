@@ -35,7 +35,7 @@
         "title": "Run Typhon",
         "icon": {
           "light": "resource/typhon_light.svg",
-          "dark": "resource/typhon_light.svg"
+          "dark": "resource/typhon_dark.svg"
         }
       },
       {
@@ -43,7 +43,7 @@
         "title": "Run Typhon With Stemming and Lemmatization",
         "icon": {
           "light": "resource/typhon_light.svg",
-          "dark": "resource/typhon_light.svg"
+          "dark": "resource/typhon_dark.svg"
         }
       },
       {
