@@ -7,3 +7,4 @@ __pycache__/
 **/result_test.csv
 **/test**
 node_modules
+dist
