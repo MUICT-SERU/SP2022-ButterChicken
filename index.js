@@ -62,14 +62,20 @@ app.get('/api/v1/ir', (req, res) => {
 });
 
 app.get('/api/v1/ml/all', async (req, res) => {
-	const result = await weaviateClient.graphql
+	const fetchedResult = await weaviateClient.graphql
 		.get()
 		.withClassName('Code')
 		.withFields('code _additional { id }')
 		.do();
 
+	// error catch
+	if (!fetchedResult)
+		return res.status(500).json({ error: 'Internal server error' });
+	if (fetchedResult['data']['Get']['Code'].length < 0)
+		return res.status(400).json({ error: 'No Result' });
+
 	const code_results =
-		result['data']['Get']['Code'].map((item) => ({
+		fetchedResult['data']['Get']['Code'].map((item) => ({
 			code: item['code'],
 			score: item['_additional']['certainty'],
 			id: item['_additional']['id'],
@@ -93,6 +99,12 @@ app.post('/api/v1/ml', async (req, res) => {
 		.withNearText(nearText)
 		.withFields('code _additional { id certainty }')
 		.do();
+
+	// error catch
+	if (!fetchedResult)
+		return res.status(500).json({ error: 'Internal server error' });
+	if (fetchedResult['data']['Get']['Code'].length < 0)
+		return res.status(400).json({ error: 'No Result' });
 
 	const code_results =
 		fetchedResult['data']['Get']['Code'].map((item) => ({
