@@ -68,11 +68,12 @@ app.get('/api/v1/ml/all', async (req, res) => {
 		.withFields('code _additional { id }')
 		.do();
 
-	const code_results = result['data']['Get']['Code'].map((item) => ({
-		code: item['code'],
-		score: item['_additional']['certainty'],
-		id: item['_additional']['id'],
-	}));
+	const code_results =
+		result['data']['Get']['Code'].map((item) => ({
+			code: item['code'],
+			score: item['_additional']['certainty'],
+			id: item['_additional']['id'],
+		})) ?? [];
 
 	const data = {
 		totalHits: code_results.length,
