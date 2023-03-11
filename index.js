@@ -21,10 +21,9 @@ const weaviateClient = weaviate.client({
 });
 
 app.post("/api/v1/ir/:index", async (req, res) => {
-  const requestIndex =
-    req.params.index === PREPROCCESS_INDEX ? PREPROCCESS_INDEX : INDEX;
+  const isPreprocess = req.params.index === PREPROCCESS_INDEX;
 
-  const info = {
+  const baseQuery = {
     query: {
       match: {
         markdown: {
@@ -34,14 +33,24 @@ app.post("/api/v1/ir/:index", async (req, res) => {
     },
   };
 
-  const url = `${URI}/${requestIndex}/_search?pretty`;
+  const preprocessQuery = {
+    query: {
+      match: {
+        processed: {
+          query: req.body.query,
+        },
+      },
+    },
+  };
+
+  const url = `${URI}/${PREPROCCESS_INDEX}/_search?pretty`;
   const elasticRes = await (
     await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-ndjson",
       },
-      body: JSON.stringify(info),
+      body: JSON.stringify(isPreprocess ? preprocessQuery : baseQuery),
     })
   ).json();
 
