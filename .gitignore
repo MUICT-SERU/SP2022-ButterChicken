@@ -1,3 +1,11 @@
 .DS_STORE
+
+.env
+Data Preparation/
+text-clustering/TyphonClustering/test.*
+__pycache__/
+.vscode/
+**/result_test.csv
+**/test**
 node_modules
 dist
