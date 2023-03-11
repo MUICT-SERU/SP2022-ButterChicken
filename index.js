@@ -11,13 +11,13 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const URI = process.env.elasticSearchAddress;
-const INDEX = process.env.elasticSearchIndex;
-const PREPROCCESS_INDEX = process.env.preprocessIndex;
+const URI = process.env.ELASTICSEARCH_ADDRESS;
+const INDEX = process.env.ELASTICSEARCH_INDEX;
+const PREPROCCESS_INDEX = process.env.ELASTICSEARCH_PREPROCESS_INDEX;
 
 const weaviateClient = weaviate.client({
   scheme: "http",
-  host: process.env.weaviateAddress,
+  host: process.env.WEAVIATE_ADDRESS,
 });
 
 app.post("/api/v1/ir/:index", async (req, res) => {
