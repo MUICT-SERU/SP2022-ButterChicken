@@ -67,22 +67,26 @@ async function _runBM25Typhon({
 
   // pre process markdown
   if (isPreProcessed) {
-    const preProcessedRes = (await (
-      await fetch(preprocessedUrl, {
-        method: "POST",
-        headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ markdown: [markdownDesc] }),
-      })
-    ).json()) as IPreProcessResponse;
-    markdownDesc = preProcessedRes.preprocessed_markdown[0];
+    const preProcessedRes = await await fetch(preprocessedUrl, {
+      method: "POST",
+      headers: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ markdown: [markdownDesc] }),
+    });
+    if (preProcessedRes.status !== 200) {
+      vscode.window.showErrorMessage("Preprocessing markdown failed.");
+      return;
+    }
+    const preProcessJson =
+      (await preProcessedRes.json()) as IPreProcessResponse;
+    markdownDesc = preProcessJson.preprocessed_markdown[0];
   }
 
   // send to middle API
   const response = (await (
-    await fetch(isPreProcessed ? url + "/preprocess" : url, {
+    await fetch(isPreProcessed ? url + "/preprocess" : url + "/base", {
       method: "POST",
       headers: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -90,10 +94,15 @@ async function _runBM25Typhon({
       },
       body: JSON.stringify({ query: markdownDesc }),
     })
-  ).json()) as IResponse;
+  ));
+  if (response.status !== 200) {
+    vscode.window.showErrorMessage("Server Error!");
+    return;
+  }
+  const responseJson = (await response.json()) as IResponse;
 
-  if (!response.error && response.data) {
-    const data = response.data;
+  if (!responseJson.error && responseJson.data) {
+    const data = responseJson.data;
     if (data.totalHits === 0) {
       const message = "No result found.";
       const options = {
@@ -133,6 +142,9 @@ async function _runBM25Typhon({
       });
       vscode.window.showTextDocument(document, vscode.ViewColumn.Beside, true);
     }
+  }
+  else {
+    vscode.window.showErrorMessage(responseJson.error || 'Data does not exist!');
   }
 }
 
