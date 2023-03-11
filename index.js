@@ -1,9 +1,10 @@
 import * as dotenv from "dotenv";
-dotenv.config();
 import express from "express";
 import bodyParser from "body-parser";
 import fetch from "node-fetch";
 import weaviate from "weaviate-client";
+
+dotenv.config();
 
 const app = express();
 
@@ -11,15 +12,18 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const URI = process.env.elasticSearchAddress;
-const INDEX = "poster";
-// index list: 'pre-test', 'poster'
+const INDEX = process.env.elasticSearchIndex;
+const PREPROCCESS_INDEX = process.env.preprocessIndex;
 
 const weaviateClient = weaviate.client({
   scheme: "http",
   host: process.env.weaviateAddress,
 });
 
-app.post("/api/v1/ir", async (req, res) => {
+app.post("/api/v1/ir/:index", async (req, res) => {
+  const requestIndex =
+    req.params.index === PREPROCCESS_INDEX ? PREPROCCESS_INDEX : INDEX;
+
   const info = {
     query: {
       match: {
@@ -30,7 +34,7 @@ app.post("/api/v1/ir", async (req, res) => {
     },
   };
 
-  const url = `${URI}/${INDEX}/_search?pretty`;
+  const url = `${URI}/${requestIndex}/_search?pretty`;
   const elasticRes = await (
     await fetch(url, {
       method: "POST",
