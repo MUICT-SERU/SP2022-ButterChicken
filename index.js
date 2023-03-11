@@ -1,3 +1,5 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
@@ -8,13 +10,13 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const URI = 'http://docker40937-typhon-server.th1.proen.cloud';
+const URI = process.env.elasticSearchAaddress;
 const INDEX = 'poster';
 // index list: 'pre-test', 'poster'
 
 const weaviateClient = weaviate.client({
 	scheme: 'http',
-	host: '202.151.177.149:81',
+	host: process.env.weaviateAddress,
 });
 
 app.post('/api/v1/ir', async (req, res) => {

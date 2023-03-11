@@ -1,5 +1,6 @@
 .DS_STORE
 
+.env
 Data Preparation/
 text-clustering/TyphonClustering/test.*
 __pycache__/
