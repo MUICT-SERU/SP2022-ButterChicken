@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from typhon import Typhon
+from typhon_lite import Typhon
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -9,11 +9,18 @@ number = 3
 class Markdown(BaseModel):
     markdown: list
 
+@app.get('/')
+def index():
+    return {
+        "greet": "Hello World"
+    }
+
 # preprcess api
-@app.get("/preprocess/")
+@app.get("/preprocess")
 def preprocess(markdown: str):
     # preprocess markdown by converting to list 
-    data = model.preprocess(markdown)
+    data = model.preprocess([markdown])
+    # print(data)
     #print(data)
     return {
         'original_markdown': markdown,
@@ -21,10 +28,10 @@ def preprocess(markdown: str):
         }
 
 # embedding api
-@app.get("/embedding/")
+@app.get("/embedding")
 def embedding(markdown: str):
     # embedding markdown by convert string to list
-    data = model.generate_embedding(markdown)
+    data = model.generate_embedding([markdown])
     #print(data)
     return {
         'original_markdown': markdown,
@@ -32,7 +39,7 @@ def embedding(markdown: str):
         }
 
 # preprcess api with json
-@app.post("/preprocess/")
+@app.post("/preprocess")
 def preprocessJSON(markdown: Markdown):
     # preprocess markdown
     data = markdown.markdown
@@ -43,7 +50,7 @@ def preprocessJSON(markdown: Markdown):
         }
 
 # embedding api with json
-@app.post("/embedding/")
+@app.post("/embedding")
 def embeddingJSON(markdown: Markdown):
     # embedding markdown
     data = markdown.markdown
