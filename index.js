@@ -61,7 +61,7 @@ app.get('/api/v1/ir', (req, res) => {
 	res.status(200).json({ message: 'Typhon: Hello World' });
 });
 
-app.get('/api/v1/ty/all', async (req, res) => {
+app.get('/api/v1/ml/all', async (req, res) => {
 	const result = await weaviateClient.graphql
 		.get()
 		.withClassName('Code')
@@ -81,7 +81,7 @@ app.get('/api/v1/ty/all', async (req, res) => {
 	res.status(200).json(data);
 });
 
-app.post('/api/v1/ty', async (req, res) => {
+app.post('/api/v1/ml', async (req, res) => {
 	const nearText = {
 		concepts: [req.body.query],
 	};
@@ -106,7 +106,7 @@ app.post('/api/v1/ty', async (req, res) => {
 	res.status(200).json(data);
 });
 
-app.get('/api/v1/ty', async (req, res) => {
+app.get('/api/v1/ml', async (req, res) => {
 	res.status(200).json({ message: 'Weaviate: Typhon Hello World' });
 });
 
