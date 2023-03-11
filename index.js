@@ -74,7 +74,7 @@ app.get('/api/v1/ml/all', async (req, res) => {
 		id: item['_additional']['id'],
 	}));
 
-	data = {
+	const data = {
 		totalHits: code_results.length,
 		hits: code_results,
 	};
@@ -99,7 +99,7 @@ app.post('/api/v1/ml', async (req, res) => {
 		id: item['_additional']['id'],
 	}));
 
-	data = {
+	const data = {
 		totalHits: code_results.length,
 		hits: code_results,
 	};
