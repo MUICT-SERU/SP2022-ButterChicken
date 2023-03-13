@@ -1,62 +1,75 @@
 from fastapi import FastAPI
 from typhon_lite import Typhon
 from pydantic import BaseModel
+from typing import List
 
 app = FastAPI()
-model = Typhon()
-number = 3
+typhon = Typhon()
+NUM_MARKDOWNS = 3
 
 class Markdown(BaseModel):
-    markdown: list
+    markdown: List[str]
 
 @app.get('/')
-def index():
+def get_greeting() -> dict:
     return {
         "greet": "Hello World"
     }
 
-# preprcess api
+# preprocess api
 @app.get("/preprocess")
-def preprocess(markdown: str):
-    # preprocess markdown by converting to list 
-    data = model.preprocess([markdown])
-    # print(data)
-    #print(data)
-    return {
-        'original_markdown': markdown,
-        'preprocessed_markdown' : data[0]
+def preprocess(markdown: str) -> dict:
+    try:
+        data = typhon.preprocess([markdown])
+        return {
+            'original_markdown': markdown,
+            'preprocessed_markdown': data[0]
+        }
+    except Exception as e:
+        return {
+            'error': str(e)
         }
 
 # embedding api
 @app.get("/embedding")
-def embedding(markdown: str):
-    # embedding markdown by convert string to list
-    data = model.generate_embedding([markdown])
-    #print(data)
-    return {
-        'original_markdown': markdown,
-        'generated_embedding' : data[0]
+def embedding(markdown: str) -> dict:
+    try:
+        data = typhon.generate_embedding([markdown])
+        return {
+            'original_markdown': markdown,
+            'generated_embedding': data[0]
+        }
+    except Exception as e:
+        return {
+            'error': str(e)
         }
 
 # preprcess api with json
 @app.post("/preprocess")
-def preprocessJSON(markdown: Markdown):
-    # preprocess markdown
-    data = markdown.markdown
-    result = model.preprocess(data)
-    return {
-        'original_markdowns': data,
-        'preprocessed_markdown' : result
+def preprocessJSON(markdown: Markdown) -> dict:
+    try:
+        data = markdown.markdown
+        result = typhon.preprocess(data)
+        return {
+            'original_markdowns': data,
+            'preprocessed_markdown': result
+        }
+    except Exception as e:
+        return {
+            'error': str(e)
         }
 
 # embedding api with json
 @app.post("/embedding")
-def embeddingJSON(markdown: Markdown):
-    # embedding markdown
-    data = markdown.markdown
-    result = model.generate_embedding(data)
-    return {
-        'original_markdowns': data,
-        'generated_embeddings' : result
+def embeddingJSON(markdown: Markdown) -> dict:
+    try:
+        data = markdown.markdown
+        result = typhon.generate_embedding(data)
+        return {
+            'original_markdowns': data,
+            'generated_embeddings': result
         }
-    
+    except Exception as e:
+        return {
+            'error': str(e)
+        }
