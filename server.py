@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from typhon_lite import Typhon
 from pydantic import BaseModel
 from typing import List
@@ -26,9 +26,7 @@ def preprocess(markdown: str) -> dict:
             'preprocessed_markdown': data[0]
         }
     except Exception as e:
-        return {
-            'error': str(e)
-        }
+        raise HTTPException(status_code=400, detail=str(e))
 
 # embedding api
 @app.get("/embedding")
@@ -40,11 +38,9 @@ def embedding(markdown: str) -> dict:
             'generated_embedding': data[0]
         }
     except Exception as e:
-        return {
-            'error': str(e)
-        }
+        raise HTTPException(status_code=400, detail=str(e))
 
-# preprcess api with json
+# preprocess api with json
 @app.post("/preprocess")
 def preprocessJSON(markdown: Markdown) -> dict:
     try:
@@ -55,9 +51,7 @@ def preprocessJSON(markdown: Markdown) -> dict:
             'preprocessed_markdown': result
         }
     except Exception as e:
-        return {
-            'error': str(e)
-        }
+        raise HTTPException(status_code=400, detail=str(e))
 
 # embedding api with json
 @app.post("/embedding")
@@ -70,6 +64,4 @@ def embeddingJSON(markdown: Markdown) -> dict:
             'generated_embeddings': result
         }
     except Exception as e:
-        return {
-            'error': str(e)
-        }
+        raise HTTPException(status_code=400, detail=str(e))
