@@ -89,18 +89,21 @@ app.get("/api/v1/ml/all", async (req, res) => {
   if (fetchedResult["data"]["Get"]["Code"].length < 0)
     return res.status(400).json({ error: "No Result" });
 
-  const code_results =
+  const codeResults =
     fetchedResult["data"]["Get"]["Code"].map((item) => ({
       code: item["code"],
       score: item["_additional"]["certainty"],
       id: item["_additional"]["id"],
     })) ?? [];
 
-  const data = {
-    totalHits: code_results.length,
-    hits: code_results,
-  };
-  res.status(200).json(data);
+  const filteredResults = codeResults.filter((r) => r.score > 0.5);
+
+  res.status(200).json({
+    data: {
+      totalHits: filteredResults.length,
+      hits: filteredResults,
+    },
+  });
 });
 
 app.post("/api/v1/ml", async (req, res) => {
@@ -121,18 +124,21 @@ app.post("/api/v1/ml", async (req, res) => {
   if (fetchedResult["data"]["Get"]["Code"].length < 0)
     return res.status(400).json({ error: "No Result" });
 
-  const code_results =
+  const codeResults =
     fetchedResult["data"]["Get"]["Code"].map((item) => ({
       code: item["code"],
       score: item["_additional"]["certainty"],
       id: item["_additional"]["id"],
     })) ?? [];
 
-  const data = {
-    totalHits: code_results.length,
-    hits: code_results,
-  };
-  res.status(200).json(data);
+  const filteredResults = codeResults.filter((r) => r.score > 0.5);
+
+  res.status(200).json({
+    data: {
+      totalHits: filteredResults.length,
+      hits: filteredResults,
+    },
+  });
 });
 
 app.get("/api/v1/ml", async (req, res) => {
