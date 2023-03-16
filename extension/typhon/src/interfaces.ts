@@ -1,6 +1,7 @@
-interface BM25Props {
+interface HitProps {
   code: string;
   score: number;
+  id?: string;
 }
 
 export interface IPreProcessResponse {
@@ -14,7 +15,7 @@ export interface IResponse {
   error?: string;
   data?: {
     totalHits: number;
-    hits: BM25Props[];
+    hits: HitProps[];
   };
 }
 

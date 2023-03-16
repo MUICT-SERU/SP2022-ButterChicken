@@ -62,12 +62,14 @@ async function _runBM25Typhon({
 }) {
   // API URLs
   // TODO: move to env
-  const preprocessedUrl = "http://202.151.182.232/preprocess/";
-  const url = "http://typhon-server.th1.proen.cloud/api/v1/ir";
+  const baseUrl = "http://typhon-server.th1.proen.cloud";
+  const preprocessedUrl = "http://202.151.176.190/preprocess";
+  const endPoint =
+    baseUrl + "/api/v1/ir" + (isPreProcessed ? "/preprocess" : "/base");
 
   // pre process markdown
   if (isPreProcessed) {
-    const preProcessedRes = await await fetch(preprocessedUrl, {
+    const preProcessedRes = await fetch(preprocessedUrl, {
       method: "POST",
       headers: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -84,17 +86,42 @@ async function _runBM25Typhon({
     markdownDesc = preProcessJson.preprocessed_markdown[0];
   }
 
+  _doInteraction({ endPoint, markdownDesc, isSideFeature });
+}
+
+async function _runMLTyphon({
+  markdownDesc,
+  isSideFeature,
+}: {
+  markdownDesc: string;
+  isSideFeature?: boolean;
+}) {
+  // API URLs
+  // TODO: move to env
+  const baseUrl = "http://typhon-server.th1.proen.cloud";
+  const endPoint = baseUrl + "/api/v1/ml";
+
+  _doInteraction({ endPoint, markdownDesc, isSideFeature });
+}
+
+async function _doInteraction({
+  endPoint,
+  markdownDesc,
+  isSideFeature,
+}: {
+  endPoint: string;
+  markdownDesc: string;
+  isSideFeature?: boolean;
+}) {
   // send to middle API
-  const response = (await (
-    await fetch(isPreProcessed ? url + "/preprocess" : url + "/base", {
-      method: "POST",
-      headers: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: markdownDesc }),
-    })
-  ));
+  const response = await fetch(endPoint, {
+    method: "POST",
+    headers: {
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query: markdownDesc }),
+  });
   if (response.status !== 200) {
     vscode.window.showErrorMessage("Server Error!");
     return;
@@ -142,18 +169,9 @@ async function _runBM25Typhon({
       });
       vscode.window.showTextDocument(document, vscode.ViewColumn.Beside, true);
     }
+  } else {
+    vscode.window.showErrorMessage(
+      responseJson.error || "Data does not exist!"
+    );
   }
-  else {
-    vscode.window.showErrorMessage(responseJson.error || 'Data does not exist!');
-  }
-}
-
-async function _runMLTyphon({
-  markdownDesc,
-  isSideFeature,
-}: {
-  markdownDesc: string;
-  isSideFeature?: boolean;
-}) {
-  // TODO: Integrate with ML API
 }
