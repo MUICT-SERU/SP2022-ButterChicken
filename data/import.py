@@ -26,7 +26,7 @@ def upload_data_weaviate(client: Client, batch_size: int = 200) -> None:
     return None
 
 def main():
-    client = Client("http://localhost:8088")
+    client = Client("http://localhost:81")
     
     wait_time_limit = 240
     while not client.is_ready():
