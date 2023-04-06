@@ -12,7 +12,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const URI = process.env.ELASTICSEARCH_ADDRESS;
-const INDEX = process.env.ELASTICSEARCH_INDEX;
 const PREPROCCESS_INDEX = process.env.ELASTICSEARCH_PREPROCESS_INDEX;
 
 const weaviateClient = weaviate.client({
@@ -43,7 +42,7 @@ app.post("/api/v1/ir/:index", async (req, res) => {
     },
   };
 
-  const url = `${URI}/${PREPROCCESS_INDEX}/_search?pretty`;
+  const url = `${URI}/${req.body.index}/_search?pretty`;
   const elasticRes = await (
     await fetch(url, {
       method: "POST",
