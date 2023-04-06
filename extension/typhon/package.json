@@ -1,5 +1,9 @@
 {
-  "publisher": "MUICT SERU",
+  "publisher": "SERU@MUICT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MUICT-SERU/SP2022-ButterChicken.git"
+  },
   "name": "typhon",
   "displayName": "Typhon",
   "description": "Automatically recommending relevent code cell in your Jupyter Notebook",
