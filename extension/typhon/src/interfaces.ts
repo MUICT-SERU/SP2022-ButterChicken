@@ -25,3 +25,9 @@ export enum TyphonModel {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   MachineLearning = "Machine Learning",
 }
+
+export enum TyphonDataTier {
+  GRANMASTER = "Gransmaster",
+  MASTER = "Master",
+  EXPERT = "Expert",
+}

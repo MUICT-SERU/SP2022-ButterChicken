@@ -20,12 +20,25 @@
         "typhon.model": {
           "type": "string",
           "default": "BM25",
-          "enum": ["BM25", "Machine Learning"],
+          "enum": [
+            "BM25",
+            "Machine Learning"
+          ],
           "enumDescriptions": [
             "BM25 is a ranking function that uses term frequency and inverse document frequency.",
             "Machine Learning is a ranking function that uses a machine learning model."
           ],
           "description": "Select the searching model to use for the extension"
+        },
+        "typhon.dataTier": {
+          "type": "string",
+          "default": "Grandmaster",
+          "enum": [
+            "Grandmaster",
+            "Master",
+            "Expert"
+          ],
+          "description": "Select the tier of the data that will return as the result"
         }
       }
     },

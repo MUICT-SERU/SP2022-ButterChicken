@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import fetch from "node-fetch";
-import { IPreProcessResponse, IResponse, TyphonModel } from "./interfaces";
+import { IPreProcessResponse, IResponse, TyphonDataTier, TyphonModel } from "./interfaces";
 
 export function runTyphon({
   isPreProcessed,
@@ -12,8 +12,10 @@ export function runTyphon({
   mlSupport?: boolean;
 }) {
   const externsionConfig = vscode.workspace.getConfiguration("typhon");
-  const searchModel = externsionConfig.get("model");
+  const searchModel: TyphonModel | undefined = externsionConfig.get("model");
+  const dataTier: TyphonDataTier | undefined = externsionConfig.get("dataTier");
   const isBM25 = searchModel === TyphonModel.BM25;
+  const dataIndex = dataTier ?? TyphonDataTier.GRANMASTER;
 
   // Handle not support ML
   if (!isBM25 && !mlSupport) {
@@ -40,8 +42,8 @@ export function runTyphon({
         let markdownDesc = currentCell.document.getText();
 
         isBM25
-          ? _runBM25Typhon({ markdownDesc, isPreProcessed, isSideFeature })
-          : _runMLTyphon({ markdownDesc, isSideFeature });
+          ? _runBM25Typhon({ markdownDesc, dataIndex, isPreProcessed, isSideFeature })
+          : _runMLTyphon({ markdownDesc, dataIndex, isSideFeature });
 
         vscode.window.showInformationMessage(
           `Typhon is actived!\n(Model: ${searchModel})`
@@ -53,10 +55,12 @@ export function runTyphon({
 
 async function _runBM25Typhon({
   markdownDesc,
+  dataIndex,
   isPreProcessed,
   isSideFeature,
 }: {
   markdownDesc: string;
+  dataIndex: TyphonDataTier;
   isPreProcessed?: boolean;
   isSideFeature?: boolean;
 }) {
@@ -86,14 +90,16 @@ async function _runBM25Typhon({
     markdownDesc = preProcessJson.preprocessed_markdown[0];
   }
 
-  _doInteraction({ endPoint, markdownDesc, isSideFeature });
+  _doInteraction({ endPoint, markdownDesc, dataIndex, isSideFeature });
 }
 
 async function _runMLTyphon({
   markdownDesc,
+  dataIndex,
   isSideFeature,
 }: {
   markdownDesc: string;
+  dataIndex: TyphonDataTier;
   isSideFeature?: boolean;
 }) {
   // API URLs
@@ -101,16 +107,18 @@ async function _runMLTyphon({
   const baseUrl = "http://typhon-server.th1.proen.cloud";
   const endPoint = baseUrl + "/api/v1/ml";
 
-  _doInteraction({ endPoint, markdownDesc, isSideFeature });
+  _doInteraction({ endPoint, markdownDesc, dataIndex, isSideFeature });
 }
 
 async function _doInteraction({
   endPoint,
   markdownDesc,
+  dataIndex,
   isSideFeature,
 }: {
   endPoint: string;
   markdownDesc: string;
+  dataIndex: TyphonDataTier;
   isSideFeature?: boolean;
 }) {
   // send to middle API
@@ -120,7 +128,7 @@ async function _doInteraction({
       // eslint-disable-next-line @typescript-eslint/naming-convention
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: markdownDesc }),
+    body: JSON.stringify({ query: markdownDesc, index: dataIndex.valueOf().toLowerCase() }),
   });
   if (response.status !== 200) {
     vscode.window.showErrorMessage("Server Error!");
