@@ -27,7 +27,7 @@ export enum TyphonModel {
 }
 
 export enum TyphonDataTier {
-  GRANMASTER = "Gransmaster",
+  GRANDMASTER = "Grandmaster",
   MASTER = "Master",
   EXPERT = "Expert",
 }

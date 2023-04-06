@@ -15,7 +15,7 @@ export function runTyphon({
   const searchModel: TyphonModel | undefined = externsionConfig.get("model");
   const dataTier: TyphonDataTier | undefined = externsionConfig.get("dataTier");
   const isBM25 = searchModel === TyphonModel.BM25;
-  const dataIndex = dataTier ?? TyphonDataTier.GRANMASTER;
+  const dataIndex = dataTier ?? TyphonDataTier.GRANDMASTER;
 
   // Handle not support ML
   if (!isBM25 && !mlSupport) {
@@ -46,7 +46,7 @@ export function runTyphon({
           : _runMLTyphon({ markdownDesc, dataIndex, isSideFeature });
 
         vscode.window.showInformationMessage(
-          `Typhon is actived!\n(Model: ${searchModel})`
+          `Typhon is actived!\n(Model: ${searchModel}, Data Tier: ${dataTier})`
         );
       }
     }
