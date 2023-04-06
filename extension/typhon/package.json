@@ -1,13 +1,21 @@
 {
+  "publisher": "MUICT SERU",
   "name": "typhon",
   "displayName": "Typhon",
-  "description": "",
+  "description": "Automatically recommending relevent code cell in your Jupyter Notebook",
+  "icon": "resource/typhon128.png",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Other"
+    "Programming Languages",
+    "Machine Learning",
+    "Education",
+    "Snippets",
+    "Notebooks",
+    "Visualization",
+    "Data Science"
   ],
   "activationEvents": [
     "onCommand:typhon.helloWorld"
