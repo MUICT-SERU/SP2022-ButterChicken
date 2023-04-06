@@ -1,7 +1,39 @@
 {
 	"classes": [
 		{
-			"class": "Code",
+			"class": "GrandMasterCode",
+			"description": "Code cell from Kaggle",
+			"moduleConfig": {
+				"text2vec-transformers": {
+					"vectorizeClassName": false
+				}
+			},
+			"properties": [
+				{
+					"name": "code",
+					"description": "Code snippet",
+					"dataType": ["text"]
+				}
+			]
+		},
+		{
+			"class": "MasterCode",
+			"description": "Code cell from Kaggle",
+			"moduleConfig": {
+				"text2vec-transformers": {
+					"vectorizeClassName": false
+				}
+			},
+			"properties": [
+				{
+					"name": "code",
+					"description": "Code snippet",
+					"dataType": ["text"]
+				}
+			]
+		},
+		{
+			"class": "ExpertCode",
 			"description": "Code cell from Kaggle",
 			"moduleConfig": {
 				"text2vec-transformers": {
