@@ -125,7 +125,6 @@ app.post('/api/v1/ml', async (req, res) => {
 		.withFields('code _additional { id certainty }')
 		.do();
 
-	console.log('className = ', className);
 	// error catch
 	if (!fetchedResult)
 		return res.status(500).json({ error: 'Internal server error' });
