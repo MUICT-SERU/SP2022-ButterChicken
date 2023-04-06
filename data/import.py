@@ -17,7 +17,8 @@ def upload_data_weaviate(client: Client, batch_size: int = 200) -> None:
     file_expert = 'expert_nl_pl_only_plot.json'
 
     with client.batch as batch:
-        batch.batch_size = 50
+        batch.batch_size = batch_size
+        print('adding data from grandmaster')
         with open(file_grandmaster) as file:
             for code_md_pair in json.load(file):
                 property = {
@@ -25,7 +26,8 @@ def upload_data_weaviate(client: Client, batch_size: int = 200) -> None:
                 }
                 batch.add_data_object(property, "GrandMasterCode")
         print('successfully added data to GrandMasterCode')
-        batch.batch_size = 25
+        batch.batch_size = batch_size
+        print('adding data from master')
         with open(file_master) as file:
             for code_md_pair in json.load(file):
                 property = {
@@ -33,7 +35,8 @@ def upload_data_weaviate(client: Client, batch_size: int = 200) -> None:
                 }
                 batch.add_data_object(property, "MasterCode")
         print('successfully added data to MasterCode')
-        batch.batch_size = 20
+        batch.batch_size = batch_size
+        print('adding data from expert')
         with open(file_expert) as file:
             for code_md_pair in json.load(file):
                 property = {
