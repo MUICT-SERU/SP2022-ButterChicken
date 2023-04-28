@@ -1,7 +1,7 @@
 FILES = [
     "grandmaster_nl_pl_only_plot.json",
-    # "master_nl_pl_only_plot.json",
-    # "expert_nl_pl_only_plot.json",
+    "master_nl_pl_only_plot.json",
+    "expert_nl_pl_only_plot.json",
 ]
 
 CLASS_NAME = {
@@ -16,12 +16,12 @@ import json
 
 weaviate_client = weaviate.Client("http://202.151.177.149:81")  # Replace with your endpoint
 some_objects = weaviate_client.data_object.get()
-# if (json.dumps(some_objects)):
-#     print(True)
-# else:
-#     print(False)
+if (json.dumps(some_objects)):
+    print(True)
+else:
+    print(False)
 
-# print(json.dumps(some_objects))
+print(json.dumps(some_objects))
 
 from elasticsearch import Elasticsearch
 from json import loads
@@ -29,7 +29,7 @@ from json import loads
 elastic_client = Elasticsearch("http://202.151.177.154:9200")
 
 response = str(elastic_client.info())
-# print(response)
+print(response)
 
 def getMLRecommendation(text: str) -> dict:
     # md_text = obj['markdown']
@@ -75,21 +75,24 @@ def getElasticRecommendation(index, queryBody):
         return result['code']
     return []
 
-testing_accumulate = []
+
 i = 0
 for file_name in FILES:
     with open(file_name, 'r') as file:
         data = json.load(file)
 
+        data_rank = file_name[:-21]
+
         data_length = len(data)
         data_count = 1
+        testing_accumulate = []
 
         for row in data:
             rows_length = len(row['markdown'])
             row_count = 1
 
             for markdown in row['markdown']:
-                data_rank = file_name[:-21]
+                
                 temp_result = {
                     "original_md": markdown,
                     "original_code": row['code'],
@@ -119,8 +122,14 @@ for file_name in FILES:
             print(f'Data Count: {data_count}/{data_length}')
             data_count = data_count + 1
 
-            # if (i==10):
+
+            # if (i==3):
             #     i = 0
             #     break
             # i = i + 1
+        
+        with open(f"{data_rank}_result.json", "w") as file:
+            json.dump(testing_accumulate, file)
+            print(f"successfully write to: {data_rank}_result.json ")
 
+print("jobs done!")
