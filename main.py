@@ -23,6 +23,7 @@ else:
 
 print(json.dumps(some_objects))
 
+
 from elasticsearch import Elasticsearch
 from json import loads
 
@@ -31,17 +32,55 @@ elastic_client = Elasticsearch("http://202.151.177.154:9200")
 response = str(elastic_client.info())
 print(response)
 
-def getMLRecommendation(text: str) -> dict:
+
+# Example Obj
+# {
+#     "markdown": [Array<Str>],
+#     "processed": [Array<Str>],
+#     "code": Str
+# }
+
+# Example Elasticsearch data tier
+# 1. grandmaster
+# 2. master
+# 3. expert
+
+# Example Weaviate Classname
+# 1. GrandMasterCode
+# 2. MasterCode
+# 3. ExpertCode
+
+# ElasticSearch Query Example
+# baseQuery = {
+#     "query": {
+#         "match": {
+#             "markdown": {
+#                 "query": markdown_desc
+#             }
+#         }
+#     }
+# }
+# processedQuery = {
+#     "query": {
+#         "match": {
+#             "processed": {
+#                 "query": markdown_desc
+#             }
+#         }
+#     }
+# }
+
+def getMLRecommendation(text: str, target_class: str) -> dict:
     # md_text = obj['markdown']
-    cur_class = "grandmaster"
+    # cur_class = "grandmaster"
     near_text = {"concepts": [text]}
     fetched = (weaviate_client.query
-                      .get(CLASS_NAME[cur_class], ["code"])
+                      .get(CLASS_NAME[target_class], ["code"])
                       .with_near_text(near_text)
                       .with_limit(1)
                       .do()
                       )
-    data = fetched['data']['Get'][CLASS_NAME[cur_class]]
+    data = fetched['data']['Get'][CLASS_NAME[target_class]]
     return data[0]
 
 def getElasticQuery(query, type=["base", "processed"]):
@@ -74,62 +113,45 @@ def getElasticRecommendation(index, queryBody):
         result = response["hits"]["hits"][0]["_source"]
         return result['code']
     return []
+    
 
-
-i = 0
 for file_name in FILES:
     with open(file_name, 'r') as file:
         data = json.load(file)
-
         data_rank = file_name[:-21]
 
         data_length = len(data)
-        data_count = 1
         testing_accumulate = []
-
+        count = 1
         for row in data:
-            rows_length = len(row['markdown'])
-            row_count = 1
+            markdown = "".join(row['markdown'])
+            
+            temp_result = {
+                "original_md": markdown,
+                "original_code": row['code'],
+                "count": count,
+                "data_rank": data_rank
+            }
 
-            for markdown in row['markdown']:
-                
-                temp_result = {
-                    "original_md": markdown,
-                    "original_code": row['code'],
-                    "count": f'{data_count}-{row_count}/{rows_length}',
-                    "data_rank": data_rank,
-                }
-                
-                # Get ML Recommendation
-                recommended_code_ml = getMLRecommendation(markdown)
-                temp_result["recommended_code_ml"] = recommended_code_ml['code']
-                # temp_result["model"] = "machine-learning"
+            # Get ML Recommendation
+            recommended_code_ml = getMLRecommendation(markdown, data_rank)
+            temp_result["recommended_code_ml"] = recommended_code_ml['code']
+            # temp_result["model"] = "machine-learning"
 
-                # Get Elastic Recommendation
-                query_base = getElasticQuery(markdown)
-                query_processed = getElasticQuery(markdown, "processed")
-                recommended_code_es_base = getElasticRecommendation(data_rank, query_base)
-                recommended_code_es_processed = getElasticRecommendation(data_rank, query_processed)
-                temp_result['recommended_code_es_base'] = recommended_code_es_base
-                temp_result['recommended_code_es_processed'] = recommended_code_es_processed
+            # Get Elastic Recommendation
+            query_base = getElasticQuery(markdown)
+            query_processed = getElasticQuery(markdown, "processed")
+            recommended_code_es_base = getElasticRecommendation(data_rank, query_base)
+            recommended_code_es_processed = getElasticRecommendation(data_rank, query_processed)
+            temp_result['recommended_code_es_base'] = recommended_code_es_base
+            temp_result['recommended_code_es_processed'] = recommended_code_es_processed
 
-                # Append to the collection
-                testing_accumulate.append(temp_result)
+            # Append to the collection
+            testing_accumulate.append(temp_result)
 
-                print(f'Row Count: {row_count}/{rows_length}')
-                row_count = row_count + 1
-
-            print(f'Data Count: {data_count}/{data_length}')
-            data_count = data_count + 1
-
-
-            # if (i==3):
-            #     i = 0
-            #     break
-            # i = i + 1
+            print(f'Count: {count}/{data_length}')
+            count =  count + 1
         
         with open(f"{data_rank}_result.json", "w") as file:
             json.dump(testing_accumulate, file)
             print(f"successfully write to: {data_rank}_result.json ")
-
-print("jobs done!")
