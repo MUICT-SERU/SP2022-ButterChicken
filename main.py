@@ -1,3 +1,7 @@
+import logging
+logging.basicConfig(filename='error.log', level=logging.ERROR)
+from datetime import datetime
+# datetime.now().strftime("%d/%m/%y %H:%M:%S")
 FILES = [
     "grandmaster_nl_pl_only_plot.json",
     "master_nl_pl_only_plot.json",
@@ -23,7 +27,6 @@ else:
 
 print(json.dumps(some_objects))
 
-
 from elasticsearch import Elasticsearch
 from json import loads
 
@@ -31,7 +34,6 @@ elastic_client = Elasticsearch("http://202.151.177.154:9200")
 
 response = str(elastic_client.info())
 print(response)
-
 
 # Example Obj
 # {
@@ -114,7 +116,7 @@ def getElasticRecommendation(index, queryBody):
         return result['code']
     return []
     
-
+    
 for file_name in FILES:
     with open(file_name, 'r') as file:
         data = json.load(file)
@@ -122,34 +124,40 @@ for file_name in FILES:
 
         data_length = len(data)
         testing_accumulate = []
-        count = 1
+        count = 0
         for row in data:
             markdown = "".join(row['markdown'])
             
-            temp_result = {
-                "original_md": markdown,
-                "original_code": row['code'],
-                "count": count,
-                "data_rank": data_rank
-            }
+            try:
+                temp_result = {
+                    "original_md": markdown,
+                    "original_code": row['code'],
+                    "count": count,
+                    "data_rank": data_rank
+                }
 
-            # Get ML Recommendation
-            recommended_code_ml = getMLRecommendation(markdown, data_rank)
-            temp_result["recommended_code_ml"] = recommended_code_ml['code']
-            # temp_result["model"] = "machine-learning"
+                # Get ML Recommendation
+                recommended_code_ml = getMLRecommendation(markdown, data_rank)
+                temp_result["recommended_code_ml"] = recommended_code_ml['code']
+                # temp_result["model"] = "machine-learning"
 
-            # Get Elastic Recommendation
-            query_base = getElasticQuery(markdown)
-            query_processed = getElasticQuery(markdown, "processed")
-            recommended_code_es_base = getElasticRecommendation(data_rank, query_base)
-            recommended_code_es_processed = getElasticRecommendation(data_rank, query_processed)
-            temp_result['recommended_code_es_base'] = recommended_code_es_base
-            temp_result['recommended_code_es_processed'] = recommended_code_es_processed
+                # Get Elastic Recommendation
+                query_base = getElasticQuery(markdown)
+                query_processed = getElasticQuery(markdown, "processed")
+                recommended_code_es_base = getElasticRecommendation(data_rank, query_base)
+                recommended_code_es_processed = getElasticRecommendation(data_rank, query_processed)
+                temp_result['recommended_code_es_base'] = recommended_code_es_base
+                temp_result['recommended_code_es_processed'] = recommended_code_es_processed
 
-            # Append to the collection
-            testing_accumulate.append(temp_result)
+                # Append to the collection
+                testing_accumulate.append(temp_result)
 
-            print(f'Count: {count}/{data_length}')
+                print(f'Count: {count}/{data_length}')
+                
+            except Exception as e:
+                print(f'[{datetime.now().strftime("%d/%m/%y %H:%M:%S")}] Skipping item #{count} due to an error.')
+                logging.error(f"Error occurred for item: {markdown}\nError message: {str(e)}\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+                continue
             count =  count + 1
         
         with open(f"{data_rank}_result.json", "w") as file:
