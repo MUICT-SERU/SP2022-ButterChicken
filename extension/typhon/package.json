@@ -1,0 +1,118 @@
+{
+  "publisher": "MUICTSERU",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MUICT-SERU/SP2022-ButterChicken.git"
+  },
+  "name": "typhon",
+  "displayName": "Typhon",
+  "description": "Automatically recommending relevent code cell in your Jupyter Notebook",
+  "icon": "resource/typhon128.png",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Education",
+    "Snippets",
+    "Notebooks",
+    "Visualization",
+    "Data Science"
+  ],
+  "activationEvents": [
+    "onCommand:typhon.helloWorld"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Typhon",
+      "properties": {
+        "typhon.model": {
+          "type": "string",
+          "default": "BM25",
+          "enum": [
+            "BM25",
+            "Machine Learning"
+          ],
+          "enumDescriptions": [
+            "BM25 is a ranking function that uses term frequency and inverse document frequency.",
+            "Machine Learning is a ranking function that uses a machine learning model."
+          ],
+          "description": "Select the searching model to use for the extension"
+        },
+        "typhon.dataTier": {
+          "type": "string",
+          "default": "Grandmaster",
+          "enum": [
+            "Grandmaster",
+            "Master",
+            "Expert"
+          ],
+          "description": "Select the tier of the data that will return as the result"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "typhon.run.normal",
+        "title": "Run Typhon",
+        "icon": {
+          "light": "resource/typhon_light.png",
+          "dark": "resource/typhon_dark.png"
+        }
+      },
+      {
+        "command": "typhon.run.preProcess",
+        "title": "Run Typhon With Stemming and Lemmatization",
+        "icon": {
+          "light": "resource/typhon_light.png",
+          "dark": "resource/typhon_dark.png"
+        }
+      },
+      {
+        "command": "typhon.run.side",
+        "title": "Open Typhon as Side Panel"
+      }
+    ],
+    "menus": {
+      "notebook/cell/title": [
+        {
+          "when": "notebookCellType != 'code'",
+          "command": "typhon.run.normal",
+          "group": "inline"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "yarn run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.0.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "@vscode/test-electron": "^2.2.0",
+    "eslint": "^8.28.0",
+    "glob": "^8.0.3",
+    "mocha": "^10.1.0",
+    "node-fetch": "^3.3.0",
+    "ts-loader": "^9.4.1",
+    "typescript": "^4.9.3",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {}
+}
