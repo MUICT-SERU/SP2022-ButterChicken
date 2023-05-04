@@ -1,5 +1,5 @@
 {
-  "publisher": "SERU@MUICT",
+  "publisher": "MUICTSERU",
   "repository": {
     "type": "git",
     "url": "https://github.com/MUICT-SERU/SP2022-ButterChicken.git"
@@ -59,16 +59,16 @@
         "command": "typhon.run.normal",
         "title": "Run Typhon",
         "icon": {
-          "light": "resource/typhon_light.svg",
-          "dark": "resource/typhon_dark.svg"
+          "light": "resource/typhon_light.png",
+          "dark": "resource/typhon_dark.png"
         }
       },
       {
         "command": "typhon.run.preProcess",
         "title": "Run Typhon With Stemming and Lemmatization",
         "icon": {
-          "light": "resource/typhon_light.svg",
-          "dark": "resource/typhon_dark.svg"
+          "light": "resource/typhon_light.png",
+          "dark": "resource/typhon_dark.png"
         }
       },
       {
