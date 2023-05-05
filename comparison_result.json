@@ -1,5 +1,6 @@
 {
 	"grandmaster": { "ml": 294, "es": 2512, "es-processed": 2132 },
 	"master": { "ml": 405, "es": 3572, "es-processed": 3007 },
-	"expert": { "ml": 658, "es": 9187, "es-processed": 7191 }
+	"expert": { "ml": 658, "es": 9187, "es-processed": 7191 },
+	"source": "https://docs.google.com/spreadsheets/d/1rYtPL7GljsQMLmxF7NHuXGD9RGXVFFFGb5-jfMz3AkU/edit?usp=sharing"
 }
