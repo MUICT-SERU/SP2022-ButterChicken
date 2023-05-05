@@ -31,8 +31,6 @@ async def read_item(item: VectorInput, response: Response):
     try:
         vector = model.embedding([item.text])
         return {"text": item.text, "vector": vector, "dim": len(vector)}
-#        vector = await vec.vectorize(item.text)
-#        return {"text": item.text, "vector": vector.tolist(), "dim": len(vector)}
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return {"error": str(e)}
