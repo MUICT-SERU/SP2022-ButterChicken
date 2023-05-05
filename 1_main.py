@@ -118,7 +118,7 @@ def getElasticRecommendation(index, queryBody):
     
     
 for file_name in FILES:
-    with open(file_name, 'r') as file:
+    with open(f'data/{file_name}', 'r') as file:
         data = json.load(file)
         data_rank = file_name[:-21]
 
@@ -160,6 +160,6 @@ for file_name in FILES:
                 continue
             count =  count + 1
         
-        with open(f"{data_rank}_result.json", "w") as file:
+        with open(f"recommendation result/{data_rank}_result.json", "w") as file:
             json.dump(testing_accumulate, file)
             print(f"successfully write to: {data_rank}_result.json ")
