@@ -1,0 +1,670 @@
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+import numpy as np
+import pandas as pd
+
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler, StandardScaler
+from sklearn.cross_validation import train_test_split
+
+import matplotlib.pyplot as plt
+%matplotlib inline 
+
+import math
+
+
+from subprocess import check_output
+print(check_output(["ls", "../input"]).decode("utf8"))
+def rmsle(y, y_pred):
+    assert len(y) == len(y_pred)
+    to_sum = [(math.log(y_pred[i] + 1) - math.log(y[i] + 1)) ** 2.0 for i,pred in enumerate(y_pred)]
+    return (sum(to_sum) * (1.0/len(y))) ** 0.5
+#Source: https://www.kaggle.com/marknagelberg/rmsle-function
+#LOAD DATA
+print("Loading data...")
+train = pd.read_table("../input/train.tsv")
+test = pd.read_table("../input/test.tsv")
+print(train.shape)
+print(test.shape)
+#HANDLE MISSING VALUES
+print("Handling missing values...")
+def handle_missing(dataset):
+    dataset.category_name.fillna(value="missing", inplace=True)
+    dataset.brand_name.fillna(value="missing", inplace=True)
+    dataset.item_description.fillna(value="missing", inplace=True)
+    return (dataset)
+
+train = handle_missing(train)
+test = handle_missing(test)
+print(train.shape)
+print(test.shape)
+train.head(3)
+#PROCESS CATEGORICAL DATA
+print("Handling categorical variables...")
+le = LabelEncoder()
+
+le.fit(np.hstack([train.category_name, test.category_name]))
+train.category_name = le.transform(train.category_name)
+test.category_name = le.transform(test.category_name)
+
+le.fit(np.hstack([train.brand_name, test.brand_name]))
+train.brand_name = le.transform(train.brand_name)
+test.brand_name = le.transform(test.brand_name)
+del le
+
+train.head(3)
+
+#PROCESS TEXT: RAW
+print("Text to seq process...")
+from keras.preprocessing.text import Tokenizer
+raw_text = np.hstack([train.item_description.str.lower(), train.name.str.lower()])
+
+print("   Fitting tokenizer...")
+tok_raw = Tokenizer()
+tok_raw.fit_on_texts(raw_text)
+print("   Transforming text to seq...")
+
+train["seq_item_description"] = tok_raw.texts_to_sequences(train.item_description.str.lower())
+test["seq_item_description"] = tok_raw.texts_to_sequences(test.item_description.str.lower())
+train["seq_name"] = tok_raw.texts_to_sequences(train.name.str.lower())
+test["seq_name"] = tok_raw.texts_to_sequences(test.name.str.lower())
+train.head(3)
+#SEQUENCES VARIABLES ANALYSIS
+max_name_seq = np.max([np.max(train.seq_name.apply(lambda x: len(x))), np.max(test.seq_name.apply(lambda x: len(x)))])
+max_seq_item_description = np.max([np.max(train.seq_item_description.apply(lambda x: len(x)))
+                                   , np.max(test.seq_item_description.apply(lambda x: len(x)))])
+print("max name seq "+str(max_name_seq))
+print("max item desc seq "+str(max_seq_item_description))
+train.seq_name.apply(lambda x: len(x)).hist()
+train.seq_item_description.apply(lambda x: len(x)).hist()
+#EMBEDDINGS MAX VALUE
+#Base on the histograms, we select the next lengths
+MAX_NAME_SEQ = 10
+MAX_ITEM_DESC_SEQ = 75
+MAX_TEXT = np.max([np.max(train.seq_name.max())
+                   , np.max(test.seq_name.max())
+                  , np.max(train.seq_item_description.max())
+                  , np.max(test.seq_item_description.max())])+2
+MAX_CATEGORY = np.max([train.category_name.max(), test.category_name.max()])+1
+MAX_BRAND = np.max([train.brand_name.max(), test.brand_name.max()])+1
+MAX_CONDITION = np.max([train.item_condition_id.max(), test.item_condition_id.max()])+1
+#SCALE target variable
+train["target"] = np.log(train.price+1)
+target_scaler = MinMaxScaler(feature_range=(-1, 1))
+train["target"] = target_scaler.fit_transform(train.target.reshape(-1,1))
+pd.DataFrame(train.target).hist()
+#EXTRACT DEVELOPTMENT TEST
+dtrain, dvalid = train_test_split(train, random_state=123, train_size=0.99)
+print(dtrain.shape)
+print(dvalid.shape)
+#KERAS DATA DEFINITION
+from keras.preprocessing.sequence import pad_sequences
+
+def get_keras_data(dataset):
+    X = {
+        'name': pad_sequences(dataset.seq_name, maxlen=MAX_NAME_SEQ)
+        ,'item_desc': pad_sequences(dataset.seq_item_description, maxlen=MAX_ITEM_DESC_SEQ)
+        ,'brand_name': np.array(dataset.brand_name)
+        ,'category_name': np.array(dataset.category_name)
+        ,'item_condition': np.array(dataset.item_condition_id)
+        ,'num_vars': np.array(dataset[["shipping"]])
+    }
+    return X
+
+X_train = get_keras_data(dtrain)
+X_valid = get_keras_data(dvalid)
+X_test = get_keras_data(test)
+#KERAS MODEL DEFINITION
+from keras.layers import Input, Dropout, Dense, BatchNormalization, Activation, concatenate, GRU, Embedding, Flatten, BatchNormalization
+from keras.models import Model
+from keras.callbacks import ModelCheckpoint, Callback, EarlyStopping
+from keras import backend as K
+
+def get_callbacks(filepath, patience=2):
+    es = EarlyStopping('val_loss', patience=patience, mode="min")
+    msave = ModelCheckpoint(filepath, save_best_only=True)
+    return [es, msave]
+
+def rmsle_cust(y_true, y_pred):
+    first_log = K.log(K.clip(y_pred, K.epsilon(), None) + 1.)
+    second_log = K.log(K.clip(y_true, K.epsilon(), None) + 1.)
+    return K.sqrt(K.mean(K.square(first_log - second_log), axis=-1))
+
+def get_model():
+    #params
+    dr_r = 0.15
+    
+    #Inputs
+    name = Input(shape=[X_train["name"].shape[1]], name="name")
+    item_desc = Input(shape=[X_train["item_desc"].shape[1]], name="item_desc")
+    brand_name = Input(shape=[1], name="brand_name")
+    category_name = Input(shape=[1], name="category_name")
+    item_condition = Input(shape=[1], name="item_condition")
+    num_vars = Input(shape=[X_train["num_vars"].shape[1]], name="num_vars")
+    
+    #Embeddings layers
+    emb_name = Embedding(MAX_TEXT, 50)(name)
+    emb_item_desc = Embedding(MAX_TEXT, 50)(item_desc)
+    emb_brand_name = Embedding(MAX_BRAND, 10)(brand_name)
+    emb_category_name = Embedding(MAX_CATEGORY, 10)(category_name)
+    emb_item_condition = Embedding(MAX_CONDITION, 5)(item_condition)
+    
+    #rnn layer
+    rnn_layer1 = GRU(16) (emb_item_desc)
+    rnn_layer2 = GRU(8) (emb_name)
+    
+    #main layer
+    main_l = concatenate([
+        Flatten() (emb_brand_name)
+        , Flatten() (emb_category_name)
+        , Flatten() (emb_item_condition)
+        , rnn_layer1
+        , rnn_layer2
+        , num_vars
+    ])
+    main_l = Dropout(dr_r) (Dense(128) (main_l))
+    main_l = Dropout(dr_r) (Dense(64) (main_l))
+    
+    #output
+    output = Dense(1, activation="linear") (main_l)
+    
+    #model
+    model = Model([name, item_desc, brand_name
+                   , category_name, item_condition, num_vars], output)
+    model.compile(loss="mse", optimizer="adam", metrics=["mae", rmsle_cust])
+    
+    return model
+
+    
+model = get_model()
+model.summary()
+    
+5
+#FITTING THE MODEL
+BATCH_SIZE = 10000
+epochs = 3
+
+model = get_model()
+model.fit(X_train, dtrain.target, epochs=epochs, batch_size=BATCH_SIZE
+          , validation_data=(X_valid, dvalid.target)
+          , verbose=1)
+#EVLUEATE THE MODEL ON DEV TEST: What is it doing?
+val_preds = model.predict(X_valid)
+val_preds = target_scaler.inverse_transform(val_preds)
+val_preds = np.exp(val_preds)+1
+
+#mean_absolute_error, mean_squared_log_error
+y_true = np.array(dvalid.price.values)
+y_pred = val_preds[:,0]
+v_rmsle = rmsle(y_true, y_pred)
+print(" RMSLE error on dev test: "+str(v_rmsle))
+#CREATE PREDICTIONS
+preds = model.predict(X_test, batch_size=BATCH_SIZE)
+preds = target_scaler.inverse_transform(preds)
+preds = np.exp(preds)-1
+
+submission = test[["test_id"]]
+submission["price"] = preds
+submission.to_csv("./myNNsubmission.csv", index=False)
+submission.price.hist()
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/artgor/segmentation-in-pytorch-using-convenient-tools
+
+runner.train(
+    model=model,
+    criterion=criterion,
+    optimizer=optimizer,
+    scheduler=scheduler,
+    loaders=loaders,
+    callbacks=[DiceCallback(), EarlyStoppingCallback(patience=5, min_delta=0.001)],
+    logdir=logdir,
+    num_epochs=num_epochs,
+    verbose=True
+)
+utils.plot_metrics(
+    logdir=logdir, 
+    # specify which metrics we want to plot
+    metrics=["loss", "dice", 'lr', '_base/lr']
+)
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/artgor/cactalyst
+
+# model runner
+runner = SupervisedRunner()
+
+# model training
+runner.train(
+    model=model,
+    criterion=criterion,
+    optimizer=optimizer,
+    scheduler=scheduler, 
+    loaders=loaders,
+    logdir=logdir,
+    callbacks=[
+        OneCycleLR(
+            cycle_len=num_epochs, 
+            div_factor=3,
+            increase_fraction=0.3,
+            momentum_range=(0.95, 0.85))
+    ],
+    num_epochs=num_epochs,
+    verbose=False
+)
+# plotting training progress
+UtilsFactory.plot_metrics(logdir=logdir)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=app_entropies, y=targets, kind='kde', color='magenta')
+plot.set_axis_labels('app_entropy', 'time_to_failure', fontsize=16)
+plt.show()
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=perm_entropies, y=targets, kind='kde', color='orangered')
+plot.set_axis_labels('perm_entropy', 'time_to_failure', fontsize=16)
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=higuchi_fds, y=targets, kind='kde', color='crimson')
+plot.set_axis_labels('higuchi_fd', 'time_to_failure', fontsize=16)
+plt.show()
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=perm_entropies, y=targets, kind='kde', color='orangered')
+plot.set_axis_labels('perm_entropy', 'time_to_failure', fontsize=16)
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=higuchi_fds, y=targets, kind='hex', color='crimson')
+plot.set_axis_labels('higuchi_fd', 'time_to_failure', fontsize=16)
+plt.show()
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=app_entropies, y=targets, kind='hex', color='magenta')
+plot.set_axis_labels('app_entropy', 'time_to_failure', fontsize=16)
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/iafoss/severstal-fast-ai-256x256-crops
+
+class SegmentationLabelList(SegmentationLabelList):
+    def open(self, fn): return open_mask(fn, div=True)
+    
+class SegmentationItemList(SegmentationItemList):
+    _label_cls = SegmentationLabelList
+
+# Setting transformations on masks to False on test set
+def transform(self, tfms:Optional[Tuple[TfmList,TfmList]]=(None,None), **kwargs):
+    if not tfms: tfms=(None,None)
+    assert is_listy(tfms) and len(tfms) == 2
+    self.train.transform(tfms[0], **kwargs)
+    self.valid.transform(tfms[1], **kwargs)
+    kwargs['tfm_y'] = False # Test data has no labels
+    if self.test: self.test.transform(tfms[1], **kwargs)
+    return self
+fastai.data_block.ItemLists.transform = transform
+
+def open_mask(fn:PathOrStr, div:bool=True, convert_mode:str='L', cls:type=ImageSegment,
+        after_open:Callable=None)->ImageSegment:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        #generate empty mask if file doesn't exist
+        x = PIL.Image.open(fn).convert(convert_mode) \
+          if Path(fn).exists() \
+          else PIL.Image.fromarray(np.zeros((sz,sz)).astype(np.uint8))
+    if after_open: x = after_open(x)
+    x = pil2tensor(x,np.float32)
+    return cls(x)
+df = pd.read_csv(HARD_NEGATIVE)
+df['index'] = df.index
+df.plot(x='index', y='pixels', kind = 'line');
+plt.yscale('log')
+stats = ([0.396,0.396,0.396], [0.179,0.179,0.179])
+#check https://www.kaggle.com/iafoss/256x256-images-with-defects for stats
+
+#the code below eliminates sharing patches of the same image across folds
+img_p = set([p.stem[:-2] for p in Path(TRAIN).ls()])
+#select 12000 of the most difficult negative exaples
+neg = list(pd.read_csv(HARD_NEGATIVE).head(12000).fname)
+neg = [Path(TRAIN_N)/f for f in neg]
+img_n = set([p.stem for p in neg])
+img_set = img_p | img_n
+img_p_list = sorted(img_p)
+img_n_list = sorted(img_n)
+img_list = img_p_list + img_n_list
+kf = KFold(n_splits=nfolds, shuffle=True, random_state=SEED)
+
+def get_data(fold):
+    #split with making sure that crops of the same original image 
+    #are not shared between folds, so additional training and validation 
+    #could be done on full images later
+    valid_idx = list(kf.split(list(range(len(img_list)))))[fold][1]
+    valid = set([img_list[i] for i in valid_idx])
+    valid_idx = []
+    for i,p in enumerate(Path(TRAIN).ls() + neg):
+        if p.stem[:-2] in valid: valid_idx.append(i)
+            
+    # Create databunch
+    sl = SegmentationItemList.from_folder(TRAIN)
+    sl.items = np.array((list(sl.items) + neg))
+    data = (sl.split_by_idx(valid_idx)
+        .label_from_func(lambda x : str(x).replace('/images', '/masks'), classes=[0,1,2,3,4])
+        .transform(get_transforms(xtra_tfms=dihedral()), size=sz, tfm_y=True)
+        .databunch(path=Path('.'), bs=bs)
+        .normalize(stats))
+    return data
+
+# Display some images with masks
+get_data(0).show_batch()
+@dataclass
+class CSVLogger(LearnerCallback):
+    def __init__(self, learn, filename= 'history'):
+        self.learn = learn
+        self.path = self.learn.path/f'{filename}.csv'
+        self.file = None
+
+    @property
+    def header(self):
+        return self.learn.recorder.names
+
+    def read_logged_file(self):
+        return pd.read_csv(self.path)
+
+    def on_train_begin(self, metrics_names: StrList, **kwargs: Any) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        e = self.path.exists()
+        self.file = self.path.open('a')
+        if not e: self.file.write(','.join(self.header) + '\n')
+
+    def on_epoch_end(self, epoch: int, smooth_loss: Tensor, last_metrics: MetricsList, **kwargs: Any) -> bool:
+        self.write_stats([epoch, smooth_loss] + last_metrics)
+
+    def on_train_end(self, **kwargs: Any) -> None:
+        self.file.flush()
+        self.file.close()
+
+    def write_stats(self, stats: TensorOrNumList) -> None:
+        stats = [str(stat) if isinstance(stat, int) else f'{stat:.6f}'
+                 for name, stat in zip(self.header, stats)]
+        str_stats = ','.join(stats)
+        self.file.write(str_stats + '\n')
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/cdeotte/one-feature-model-0-930
+
+plt.figure(figsize=(20,5))
+res = 1000; let = ['A','B','C','D','E','F','G','H','I','J']
+plt.plot(range(0,test.shape[0],res),test.signal[0::res])
+for i in range(5): plt.plot([i*500000,i*500000],[-5,12.5],'r')
+for j in range(21): plt.plot([j*100000,j*100000],[-5,12.5],'r:')
+for k in range(4): plt.text(k*500000+200000,10,str(k+1),size=20)
+for k in range(10): plt.text(k*100000+40000,7,let[k],size=16)
+plt.xlabel('Row',size=16); plt.ylabel('Channels Open',size=16); 
+plt.title('Test Data Signal - 4 batches - 10 subsamples',size=20)
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/xhlulu/exploration-and-preprocessing-for-keras-224x224
+
+label_df = pd.read_csv('../input/train.csv')
+submission_df = pd.read_csv('../input/sample_submission.csv')
+label_df.head()
+label_df['Id'].describe()
+# Display the most frequent ID (without counting new_whale)
+label_df['Id'].value_counts()[1:16].plot(kind='bar')
+def display_samples(df, columns=4, rows=3):
+    fig=plt.figure(figsize=(5*columns, 3*rows))
+
+    for i in range(columns*rows):
+        image_path = df.loc[i,'Image']
+        image_id = df.loc[i,'Id']
+        img = cv2.imread(f'../input/train/{image_path}')
+        fig.add_subplot(rows, columns, i+1)
+        plt.title(image_id)
+        plt.imshow(img)
+
+display_samples(label_df)
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/xhlulu/reducing-image-sizes-to-32x32
+
+label_df = pd.read_csv('../input/train.csv')
+submission_df = pd.read_csv('../input/sample_submission.csv')
+label_df.head()
+label_df['category_id'].value_counts()[1:16].plot(kind='bar')
+def display_samples(df, columns=4, rows=3):
+    fig=plt.figure(figsize=(5*columns, 3*rows))
+
+    for i in range(columns*rows):
+        image_path = df.loc[i,'file_name']
+        image_id = df.loc[i,'category_id']
+        img = cv2.imread(f'../input/train_images/{image_path}')
+        fig.add_subplot(rows, columns, i+1)
+        plt.title(image_id)
+        plt.imshow(img)
+
+display_samples(label_df)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import lightgbm as lgb
+from sklearn.model_selection import KFold
+from sklearn import model_selection, preprocessing, metrics
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+import shap
+import os
+print(os.listdir("../input"))
+from sklearn import preprocessing
+import xgboost as xgb
+import gc
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+
+# Load data
+train = pd.read_csv('../input/cat-in-the-dat/train.csv')
+test = pd.read_csv('../input/cat-in-the-dat/test.csv')
+
+print(train.shape)
+print(test.shape)
+%%time
+
+# Subset
+target = train['target']
+train_id = train['id']
+test_id = test['id']
+train.drop(['target', 'id'], axis=1, inplace=True)
+test.drop('id', axis=1, inplace=True)
+
+print(train.shape)
+print(test.shape)
+features = test.columns
+train['target'] = 0
+test['target'] = 1
+train_test = pd.concat([train, test], axis =0)
+target = train_test['target'].values
+del train, test
+gc.collect()
+# Label Encoding
+for f in features:
+    lbl = preprocessing.LabelEncoder()
+    lbl.fit(list(train_test[f].values) )
+    train_test[f] = lbl.transform(list(train_test[f].values))
+train, test = model_selection.train_test_split(train_test, test_size=0.33, random_state=42, shuffle=True)
+del train_test
+gc.collect()
+train_y = train['target'].values
+test_y = test['target'].values
+del train['target'], test['target']
+gc.collect()
+train = lgb.Dataset(train, label=train_y)
+test = lgb.Dataset(test, label=test_y)
+param = {'num_leaves': 50,
+         'min_data_in_leaf': 30, 
+         'objective':'binary',
+         'max_depth': 5,
+         'learning_rate': 0.001,
+         "min_child_samples": 20,
+         "boosting": "gbdt",
+         "feature_fraction": 0.9,
+         "bagging_freq": 1,
+         "bagging_fraction": 0.9 ,
+         "bagging_seed": 44,
+         "metric": 'auc',
+         "verbosity": -1}
+num_round = 50000
+clf = lgb.train(param, train, num_round, valid_sets = [train, test], verbose_eval=50, early_stopping_rounds = 500)
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/gpreda/elo-eda-and-prediction
+
+plot_bar(get_categories(new_merchant_trans_df,'city_id'), 
+             'City ID distribution', 'City ID', 'Number of records','brown')
+plot_bar(get_categories(new_merchant_trans_df,'merchant_category_id'), 
+             'Merchant category ID distribution', 'Merchant category ID', 'Number of records','green')
+plot_bar(get_categories(new_merchant_trans_df,'state_id'), 
+             'State ID distribution', 'State ID', 'Number of records','darkblue')
+plot_bar(get_categories(new_merchant_trans_df,'subsector_id'), 
+             'Subsector ID distribution', 'Subsector ID', 'Number of records','darkgreen')
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/gpreda/elo-eda-and-prediction
+
+plot_bar(get_categories(historical_trans_df,'city_id'), 
+             'City ID distribution', 'City ID', 'Number of records','lightblue')
+plot_bar(get_categories(historical_trans_df,'merchant_category_id'), 
+             'Merchant Cateogory ID distribution', 'Merchant Category ID', 'Number of records','lightgreen')
+plot_bar(get_categories(historical_trans_df,'state_id'), 
+             'State ID distribution', 'State ID', 'Number of records','brown')
+plot_bar(get_categories(historical_trans_df,'subsector_id'), 
+             'Subsector ID distribution', 'Subsector ID', 'Number of records','orange')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/gpreda/elo-eda-and-prediction
+
+##plot the feature importance
+logger.info("Feature importance plot")
+cols = (feature_importance_df[["Feature", "importance"]]
+        .groupby("Feature")
+        .mean()
+        .sort_values(by="importance", ascending=False)[:1000].index)
+best_features = feature_importance_df.loc[feature_importance_df.Feature.isin(cols)]
+plt.figure(figsize=(14,26))
+sns.barplot(x="importance", y="Feature", data=best_features.sort_values(by="importance",ascending=False))
+plt.title('LightGBM Features (averaged over folds)')
+plt.tight_layout()
+plt.savefig('lgbm_importances.png')
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vbmokin/nfl-feature-importance-xgb-lgbm-linreg
+
+X = train
+z = target
+#%% split training set to validation set
+Xtrain, Xval, Ztrain, Zval = train_test_split(X, z, test_size=0.2, random_state=0)
+train_set = lgbm.Dataset(Xtrain, Ztrain, silent=False)
+valid_set = lgbm.Dataset(Xval, Zval, silent=False)
+params = {
+        'boosting_type':'gbdt',
+        'objective': 'regression',
+        'num_leaves': 31,
+        'learning_rate': 0.05,
+        'max_depth': -1,
+        'subsample': 0.8,
+        'bagging_fraction' : 1,
+        'max_bin' : 5000 ,
+        'bagging_freq': 20,
+        'colsample_bytree': 0.6,
+        'metric': 'rmse',
+        'min_split_gain': 0.5,
+        'min_child_weight': 1,
+        'min_child_samples': 10,
+        'scale_pos_weight':1,
+        'zero_as_missing': True,
+        'seed':0,        
+    }
+
+modelL = lgbm.train(params, train_set = train_set, num_boost_round=1000,
+                   early_stopping_rounds=50,verbose_eval=10, valid_sets=valid_set)
+fig =  plt.figure(figsize = (25,30))
+axes = fig.add_subplot(111)
+lgbm.plot_importance(modelL,ax = axes,height = 0.5)
+plt.show();plt.close()
+feature_score = pd.DataFrame(train.columns, columns = ['feature']) 
+feature_score['score_lgb'] = modelL.feature_importance()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+

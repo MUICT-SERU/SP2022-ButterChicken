@@ -1,0 +1,682 @@
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+!pip install meteocalc
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import lightgbm as lgb
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import KFold, StratifiedKFold, GroupKFold
+from tqdm import tqdm_notebook as tqdm
+import datetime
+from meteocalc import feels_like, Temp
+from sklearn import metrics
+import gc
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Operating system
+import sys
+import os
+from pathlib import Path
+os.environ["OMP_NUM_THREADS"] = "1"
+
+# math
+import numpy as np
+import pandas as pd
+from numpy import arange
+import math
+from numpy import linalg as LA
+from scipy import stats
+
+# plots
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib import animation, rc
+import matplotlib.colors as colors
+import plotly.graph_objects as go
+from tqdm import tqdm, tqdm_notebook
+tqdm.pandas()
+from datetime import timezone, datetime, timedelta
+
+# ML
+import sklearn
+import h5py
+import sklearn.metrics
+from sklearn.model_selection import train_test_split
+from sklearn.cluster import DBSCAN
+from sklearn import metrics
+from sklearn.datasets.samples_generator import make_blobs
+from sklearn.preprocessing import StandardScaler
+
+# Lyft SDK
+!pip install lyft-dataset-sdk
+from lyft_dataset_sdk.utils.map_mask import MapMask
+from lyft_dataset_sdk.lyftdataset import LyftDataset
+from lyft_dataset_sdk.utils.geometry_utils import view_points, box_in_image, BoxVisibility
+from lyft_dataset_sdk.utils.geometry_utils import view_points, transform_matrix
+from lyft_dataset_sdk.utils.data_classes import LidarPointCloud, Box, Quaternion
+
+DATA_PATH = './'
+os.system('rm -f data && ln -s /kaggle/input/3d-object-detection-for-autonomous-vehicles/train_data data')
+os.system('rm  -f images && ln -s /kaggle/input/3d-object-detection-for-autonomous-vehicles/train_images images')
+os.system('rm  -f maps && ln -s /kaggle/input/3d-object-detection-for-autonomous-vehicles/train_maps maps')
+os.system('rm  -f lidar && ln -s /kaggle/input/3d-object-detection-for-autonomous-vehicles/train_lidar lidar')
+
+DEBUG = True
+def log(message):
+    if(DEBUG == True):
+        time_string = datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f')
+        print(time_string + ' : ', message )
+LYFT = LyftDataset(data_path=DATA_PATH, json_path=DATA_PATH + 'data', verbose=True)
+# Get object size
+wlhs = np.array([ann['size'] for ann in  LYFT.sample_annotation])
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/demesgal/train-inference-gpu-baseline-tta
+
+DATA_ROOT_PATH = '../input/alaska2-image-steganalysis'
+
+def onehot(size, target):
+    vec = torch.zeros(size, dtype=torch.float32)
+    vec[target] = 1.
+    return vec
+
+class DatasetRetriever(Dataset):
+
+    def __init__(self, kinds, image_names, labels, transforms=None):
+        super().__init__()
+        self.kinds = kinds
+        self.image_names = image_names
+        self.labels = labels
+        self.transforms = transforms
+
+    def __getitem__(self, index: int):
+        kind, image_name, label = self.kinds[index], self.image_names[index], self.labels[index]
+        image = cv2.imread(f'{DATA_ROOT_PATH}/{kind}/{image_name}', cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        image /= 255.0
+        if self.transforms:
+            sample = {'image': image}
+            sample = self.transforms(**sample)
+            image = sample['image']
+            
+        target = onehot(4, label)
+        return image, target
+
+    def __len__(self) -> int:
+        return self.image_names.shape[0]
+
+    def get_labels(self):
+        return list(self.labels)
+fold_number = 0
+
+train_dataset = DatasetRetriever(
+    kinds=dataset[dataset['fold'] != fold_number].kind.values,
+    image_names=dataset[dataset['fold'] != fold_number].image_name.values,
+    labels=dataset[dataset['fold'] != fold_number].label.values,
+    transforms=get_train_transforms(),
+)
+
+validation_dataset = DatasetRetriever(
+    kinds=dataset[dataset['fold'] == fold_number].kind.values,
+    image_names=dataset[dataset['fold'] == fold_number].image_name.values,
+    labels=dataset[dataset['fold'] == fold_number].label.values,
+    transforms=get_valid_transforms(),
+)
+image, target = train_dataset[0]
+numpy_image = image.permute(1,2,0).cpu().numpy()
+
+fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+    
+ax.set_axis_off()
+ax.imshow(numpy_image);
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.gridspec as gridspec
+%matplotlib inline
+
+from trackml.dataset import load_event
+from trackml.randomize import shuffle_hits
+from trackml.score import score_event
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+import copy
+import gc
+import glob
+import os
+import time
+
+import cv2
+import IPython
+import IPython.display
+import librosa
+import librosa.display
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import tensorflow.keras as keras
+from joblib import Parallel, delayed
+from sklearn.model_selection import KFold, StratifiedKFold, train_test_split
+from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.layers import *
+from tensorflow.keras.models import Model
+from tqdm import tqdm
+
+%matplotlib inline
+pd.options.display.max_columns = 128
+pd.options.display.max_rows = 128
+plt.rcParams['figure.figsize'] = (15, 8)
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import accuracy_score,confusion_matrix,precision_score,f1_score
+from sklearn import metrics
+from sklearn.calibration import CalibratedClassifierCV
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+from sklearn.model_selection import train_test_split
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# Any results you write to the current directory are saved as output.
+train = pd.read_csv('/kaggle/input/cat-in-the-dat-ii/train.csv')
+test = pd.read_csv('/kaggle/input/cat-in-the-dat-ii/test.csv')
+train.describe()
+train.head()
+list(train['ord_0'].unique())
+np.ceil(train['ord_0'].mean())
+train.info()
+def summary(df):
+    summary = pd.DataFrame(df.dtypes, columns=['dtypes'])
+    summary = summary.reset_index()
+    summary['Name'] = summary['index']
+    summary = summary[['Name', 'dtypes']]
+    summary['Missing'] = df.isnull().sum().values    
+    summary['Uniques'] = df.nunique().values
+    summary['First Value'] = df.loc[0].values
+    summary['Second Value'] = df.loc[1].values
+    summary['Third Value'] = df.loc[2].values
+    return summary
+
+
+summary(train)
+
+
+set(train['bin_0'].isna())
+corr = train.corr()
+plt.figure(figsize=(10,10))
+ax = sns.heatmap(corr,vmin=-1, vmax=1, center=0,cmap='coolwarm',square=True)
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import matplotlib.pyplot as plt
+from scipy import stats
+from scipy.special import inv_boxcox
+from typing import Tuple
+import lightgbm as lgb
+from datetime import timedelta
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+
+FIGURE_SIZE = (20, 10)
+plt.rcParams['axes.grid'] = True
+
+%matplotlib inline
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+import os
+print(os.listdir("../input"))
+
+# Any results you write to the current directory are saved as output.
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import os 
+from sklearn.preprocessing import MinMaxScaler
+SEQ_LEN = 60  # how long of a preceeding sequence to collect for RNN
+FUTURE_PERIOD_PREDICT = 30  # how far into the future are we trying to predict?
+STOCK_TO_PREDICT = 'GE'
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Dropout
+from keras.layers import BatchNormalization
+from keras.layers import Flatten
+from keras.layers import GRU
+from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
+from keras.optimizers import Adam 
+from keras.engine.topology import Layer
+from keras import initializers, regularizers, constraints
+from keras.engine.input_layer import Input
+from keras import backend as K
+from keras.models import Model
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+from datetime import datetime 
+start_real = datetime.now()
+#Importing libraries
+import pandas as pd
+import numpy as np
+import scipy as sci
+import seaborn as sns
+import matplotlib.pyplot as plt
+import multiprocessing
+%matplotlib inline
+train = pd.read_csv("../input/train.tsv", sep='\t')
+test = pd.read_csv("../input/test.tsv", sep='\t')
+#Getting rid of outliers
+train['bigger_than_200'] = train['price'].map(lambda x: 1 if x >200 else 0)
+train = train[train['bigger_than_200'] ==0]
+del train['bigger_than_200']
+print(train.shape)
+print(test.shape)
+#Checking any missing values,
+import missingno as msno
+msno.bar(train,sort=True,figsize=(10,5))
+msno.bar(test,sort=True,figsize=(10,5))
+#Getting the length of item description
+train['length'] = train['item_description'].map(lambda x: len(str(x)))
+test['length'] = test['item_description'].map(lambda x: len(str(x)))
+
+#Merging data
+data = pd.concat([train,test])
+#Defining a variable
+data['train_or_not'] = data['train_id'].map(lambda x: 1 if x.is_integer() else 0)
+#lowering letters
+data['brand_name'] = data['brand_name'].map(lambda x: str(x).lower())
+data['category_name'] = data['category_name'].map(lambda x: str(x).lower())
+data['item_description'] = data['item_description'].map(lambda x: str(x).lower())
+data['name'] = data['name'].map(lambda x: str(x).lower())
+data['no_of_words'] = data['item_description'].map(lambda x: len(str(x).split()))
+#Nan values in brand
+%%time
+data['brand_nan'] = data['brand_name'].map(lambda x: 1 if x =="nan" else 0)
+##Brand names
+#Number of unique brand names
+print(len(set(data['brand_name'])))
+print('brand_name in train',len(set(train['brand_name'])))
+print('brand_name in test',len(set(test['brand_name'])))
+train_cat_names= list(set(train['brand_name']))
+test_cat_names= list(set(test['brand_name']))
+
+in_test_not_in_train = [x for x in test_cat_names if x not in train_cat_names]
+print(len(in_test_not_in_train))
+
+in_train_not_in_test = [x for x in train_cat_names if x not in test_cat_names]
+print(len(in_train_not_in_test))
+#category
+data['categories'] = data['category_name'].map(lambda x: list(str(x).split('/')))
+#no descriptions
+data['no_description'] = data['item_description'].map(lambda x: 1 if str(x) =='no description yet' else 0)
+print(len(data[data['no_description']==1]))
+print('brand_name = nan & no description',len(data[(data['brand_name']=='nan') & (data['no_description'] ==1)]))
+#No brand name and no desc
+no_desc_no_brand = data[(data['brand_name']=='nan') & (data['no_description'] ==1)]
+no_desc_no_brand['test'] = no_desc_no_brand['test_id'].map(lambda x: 1 if x.is_integer() else 0)
+no_desc_no_brand = no_desc_no_brand[no_desc_no_brand['test'] ==0]
+plt.style.use('fivethirtyeight')
+plt.subplots(figsize=(15,5))
+no_desc_no_brand['price'].hist(bins=150,edgecolor='black',grid=False)
+plt.xticks(list(range(0,100,5)))
+plt.title('Price vs no brand&no_description')
+plt.show() 
+#No of rows whose price is bigger than 100
+print("No of rows whose price is bigger than 200 in no_brand&no_description",len(no_desc_no_brand[no_desc_no_brand['price'] >200]))
+
+no_desc_no_brand['price'].describe()
+del no_desc_no_brand
+from ggplot import *
+p = ggplot(aes(x='price'), data=train[train['price']<200]) + geom_histogram(binwidth=10)+ theme_bw() + ggtitle('Histogram of price in train data')
+print(p)
+data['price'].describe().apply(lambda x: format(x, 'f'))
+#Length of categories
+data['len_categories'] = data['categories'].map(lambda x: len(x))
+#Value_counts for item_condition_id
+temp1=data['item_condition_id'].value_counts()[:5].to_frame()
+sns.barplot(temp1.index,temp1['item_condition_id'],palette='inferno')
+plt.title('Item condition id')
+plt.xlabel('')
+fig=plt.gcf()
+fig.set_size_inches(10,10)
+plt.show()
+#Making binary 'item_condition_id'
+ic_list = list(set(data['item_condition_id']))
+
+for i in ic_list:
+    data['item_condition_id'+str(i)] = data['item_condition_id'].map(lambda x: 1 if x==i else 0)
+
+del data['item_condition_id']
+#Correlation between no_of_words and price
+corr = data[['no_of_words','price','shipping','len_categories','length']].corr()
+
+# Set up the matplot figure
+f,ax = plt.subplots(figsize=(12,9))
+
+#Draw the heatmap using seaborn
+sns.heatmap(corr, cmap='inferno', annot=True)
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# Reference: https://www.kaggle.com/code/mbkinaci/eda-xgboost-ridge-knn-extratrees-regression
+
+corr_list = ['percent_atom_al','percent_atom_ga','percent_atom_in','bandgap_energy_ev','formation_energy_ev_natom']
+corr = data[data['train_or_not'] ==1][corr_list].corr()
+f,ax = plt.subplots(figsize=(12,9))
+
+#Draw the heatmap using seaborn
+sns.heatmap(corr, cmap='winter_r', annot=True)
+data[data['train_or_not'] ==1]['bandgap_energy_ev'].hist(bins = 100,color = 'green')
+data[data['train_or_not'] ==1]['formation_energy_ev_natom'].hist(bins = 100,color='red')
+data.head()
+def area_calculator(x):
+    a = x['one_to_two']
+    b = x['one_to_three']
+    c = x['two_to_three']
+    p = (a+b+c)/2
+    return np.sqrt(p*(p-a)*(p-b)*(p-c))
+data['area'] = data.apply(area_calculator,axis=1)
+data.head()
+data[data['train_or_not'] ==1][['area','formation_energy_ev_natom','bandgap_energy_ev']].corr()
+data[data['train_or_not'] ==1].plot(kind = "scatter",x='area',y ='formation_energy_ev_natom',marker='.',figsize=(10,5))
+def area_bucket(x):
+    if (x>10) & (x<65):
+        return 1
+    elif (x>65) & (x<95):
+        return 2
+    elif (x>95) & (x<120):
+        return 3
+    else:
+        return 4
+data['area_bucket'] = data['area'].map(lambda x: area_bucket(x))
+data.groupby('area_bucket')['formation_energy_ev_natom'].mean()
+data['area_bucket_3'] = data['area_bucket'].map(lambda x: 1 if x==3 else 0)
+data['area_bucket_4'] = data['area_bucket'].map(lambda x: 1 if x==4 else 0)
+del data['area_bucket']
+from pylab import rcParams
+rcParams['figure.figsize'] = 20, 10
+colors = ['b', 'c', 'y', 'm', 'r','g','k','pink','orange','purple']
+
+c0 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 0)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 0)]['formation_energy_ev_natom'], marker='x', color=colors[0])
+c1 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 1)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 1)]['formation_energy_ev_natom'], marker='o', color=colors[1])
+c2 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 2)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 2)]['formation_energy_ev_natom'], marker='.', color=colors[2])
+c3 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 3)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 3)]['formation_energy_ev_natom'], marker='^', color=colors[3])
+c4 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 4)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 4)]['formation_energy_ev_natom'], marker='+', color=colors[4])
+c5 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 5)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 5)]['formation_energy_ev_natom'], marker='v', color=colors[5])
+c6 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 6)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 6)]['formation_energy_ev_natom'], marker='_', color=colors[6])
+c7 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 7)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 7)]['formation_energy_ev_natom'], marker='*', color=colors[7])
+c8 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 8)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 8)]['formation_energy_ev_natom'], marker='s', color=colors[8])
+c9 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 9)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 9)]['formation_energy_ev_natom'], marker='d', color=colors[9])
+
+plt
+plt.xlabel("bandgap_energy_ev")
+plt.ylabel("formation_energy_ev_natom")
+plt.legend((c0, c1, c2, c3, c4, c5, c6,c7,c8,c9),
+           ('cluster0','cluster1','cluster2','cluster3','cluster4','cluster5','cluster6','cluster7','cluster8','cluster9'),
+           scatterpoints=1,
+           loc='upper right',
+           ncol=2,
+           fontsize=10)
+
+plt.show()
+rcParams['figure.figsize'] = 10, 5
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['lattice_angle_alpha_degree'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['lattice_angle_alpha_degree'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle alpha degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('lattice alpha degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('lattice alpha degree')
+ax[1].legend(loc=0)
+
+plt.show()
+len(data[(data['lattice_angle_alpha_degree']<92.5) & (data['lattice_angle_alpha_degree']>89.5)])
+rcParams['figure.figsize'] = 10, 5
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['lattice_angle_beta_degree'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['lattice_angle_beta_degree'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle beta degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('Lattice angle beta degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('Lattice angle beta degree')
+ax[1].legend(loc=0)
+
+plt.show()
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] > 102)]['formation_energy_ev_natom'].mean())
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] < 102)]['formation_energy_ev_natom'].mean())
+data['beta_bigger_102'] = data['lattice_angle_beta_degree'].map(lambda x: 1 if x >102 else 0)
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] > 102)]['bandgap_energy_ev'].mean())
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] < 102)]['bandgap_energy_ev'].mean())
+len(data[(data['lattice_angle_beta_degree']<90.5) & (data['lattice_angle_beta_degree']>89.5)])
+rcParams['figure.figsize'] = 8, 4
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['lattice_angle_gamma_degree'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['lattice_angle_gamma_degree'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle gamma degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('degree')
+ax[1].legend(loc=0)
+
+plt.show()
+data['atomic_density'] = data['number_of_total_atoms']/(data['lattice_vector_1_ang']*data['lattice_vector_2_ang']*data['lattice_vector_3_ang'])
+rcParams['figure.figsize'] = 8, 4
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['number_of_total_atoms'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['number_of_total_atoms'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle gamma degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('degree')
+ax[1].legend(loc=0)
+
+plt.show()
+data[(data['number_of_total_atoms']==10) & (data['formation_energy_ev_natom']>0.3)]
+data = data.drop([1235,1983])
+data.shape
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/juanmah/ashrae-degree-hours
+
+timeseries_cooling = timeseries[
+    ["building_id", "meter", 'air_temperature']
+    + [cdh for cdh in weather_train.columns.to_list() if "cooling_degree_hours" in cdh]
+]
+timeseries_cooling = pd.wide_to_long(
+    timeseries_cooling,
+    stubnames="cooling_degree_hours_",
+    i=["building_id", "meter", 'air_temperature'],
+    j="base_temperature",
+)
+timeseries_cooling.reset_index(inplace=True)
+fig = px.scatter(
+    timeseries_cooling,
+    x="air_temperature",
+    y="cooling_degree_hours_",
+    color="meter",
+    animation_frame="base_temperature",        
+    opacity=0.7,
+    marginal_x="violin",
+    marginal_y="violin",
+    hover_name="building_id",
+    category_orders=category_orders,
+    color_discrete_map=color_discrete_map_meter,
+)
+fig.update_layout(yaxis=dict(range=[-1, 1]))
+fig.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ORIGINAL CODE:
+---------------------------------------------------------------------------------------------------
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import glob
+glob.glob('..s/input/prostate-cancer-grade-assessment/*')
+len(glob.glob('../input/prostate-cancer-grade-assessment/train_images/*.tiff'))
+!pip install -qq ../input/efficientnet/efficientnet-1.0.0-py3-none-any.whl
+import os
+import cv2
+import time
+import skimage.io
+import numpy as np
+import pandas as pd
+import imgaug as ia
+from PIL import Image
+from tqdm import tqdm
+from random import shuffle
+import matplotlib.pyplot as plt
+import efficientnet.keras as efn
+from imgaug import augmenters as iaa
+
+from sklearn.model_selection import train_test_split
+
+from keras import Model
+import keras.backend as K
+from keras.layers import *
+from keras.optimizers import Adam, RMSprop
+from keras.applications.nasnet import  preprocess_input
+from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
