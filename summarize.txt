@@ -1,0 +1,18 @@
+Expert
+Pair, what different
+1, Markdown is empty, recommend is empty
+2, The recommendation just different, but mostly perform similar things with same functions
+3, the code constructs are the same with different arguments
+4, the code constructs are the same with different arguments
+5, the code constructs are the same with different arguments
+6, Markdown is just one word, "Data"
+7, Someone might have copied the code and remove the comment
+8, Markdown is empty, recommendation is empty
+9, the code constructs are the same with different arguments
+10, the two code snippets do similar things in the same topic. They create a bar chart to visualizae the feature importance, but the original uses builtin horizontal barchart lib in LightGBM lib, while the recommendation use Seaborn vertical barchart lib. The data for the chart was also prepared differently.
+
+Master
+Pair, what different
+
+Grand Master
+Pair, what different

@@ -1,5 +1,15 @@
-ORIGINAL CODE:
+ITEM #1
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 import numpy as np
 import pandas as pd
 
@@ -207,34 +217,15 @@ submission["price"] = preds
 submission.to_csv("./myNNsubmission.csv", index=False)
 submission.price.hist()
 
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #2
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-# Reference: https://www.kaggle.com/code/artgor/segmentation-in-pytorch-using-convenient-tools
-
-runner.train(
-    model=model,
-    criterion=criterion,
-    optimizer=optimizer,
-    scheduler=scheduler,
-    loaders=loaders,
-    callbacks=[DiceCallback(), EarlyStoppingCallback(patience=5, min_delta=0.001)],
-    logdir=logdir,
-    num_epochs=num_epochs,
-    verbose=True
-)
-utils.plot_metrics(
-    logdir=logdir, 
-    # specify which metrics we want to plot
-    metrics=["loss", "dice", 'lr', '_base/lr']
-)
+## Model training
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -263,17 +254,61 @@ runner.train(
 )
 # plotting training progress
 UtilsFactory.plot_metrics(logdir=logdir)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/artgor/segmentation-in-pytorch-using-convenient-tools
+
+runner.train(
+    model=model,
+    criterion=criterion,
+    optimizer=optimizer,
+    scheduler=scheduler,
+    loaders=loaders,
+    callbacks=[DiceCallback(), EarlyStoppingCallback(patience=5, min_delta=0.001)],
+    logdir=logdir,
+    num_epochs=num_epochs,
+    verbose=True
+)
+utils.plot_metrics(
+    logdir=logdir, 
+    # specify which metrics we want to plot
+    metrics=["loss", "dice", 'lr', '_base/lr']
+)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #3
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+#### Bivariate KDE distribution plot
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=perm_entropies, y=targets, kind='kde', color='orangered')
+plot.set_axis_labels('perm_entropy', 'time_to_failure', fontsize=16)
+plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
 
 plot = sns.jointplot(x=app_entropies, y=targets, kind='kde', color='magenta')
 plot.set_axis_labels('app_entropy', 'time_to_failure', fontsize=16)
 plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #4
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+#### Bivariate KDE distribution plot
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -282,36 +317,23 @@ RECOMMENDED CODE:
 plot = sns.jointplot(x=perm_entropies, y=targets, kind='kde', color='orangered')
 plot.set_axis_labels('perm_entropy', 'time_to_failure', fontsize=16)
 plt.show()
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+================================================================
 ORIGINAL CODE:
----------------------------------------------------------------------------------------------------
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
 
 plot = sns.jointplot(x=higuchi_fds, y=targets, kind='kde', color='crimson')
 plot.set_axis_labels('higuchi_fd', 'time_to_failure', fontsize=16)
 plt.show()
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
-
-plot = sns.jointplot(x=perm_entropies, y=targets, kind='kde', color='orangered')
-plot.set_axis_labels('perm_entropy', 'time_to_failure', fontsize=16)
-plt.show()
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #5
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
-
-plot = sns.jointplot(x=higuchi_fds, y=targets, kind='hex', color='crimson')
-plot.set_axis_labels('higuchi_fd', 'time_to_failure', fontsize=16)
-plt.show()
+The KDE plot has highest density (darkness) around a line with negative slope.#### Bivariate hexplot
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -320,12 +342,41 @@ RECOMMENDED CODE:
 plot = sns.jointplot(x=app_entropies, y=targets, kind='hex', color='magenta')
 plot.set_axis_labels('app_entropy', 'time_to_failure', fontsize=16)
 plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/tarunpaparaju/lanl-earthquake-prediction-fresh-eda
+
+plot = sns.jointplot(x=higuchi_fds, y=targets, kind='hex', color='crimson')
+plot.set_axis_labels('higuchi_fd', 'time_to_failure', fontsize=16)
+plt.show()
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #6
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+# Data
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/cdeotte/one-feature-model-0-930
+
+plt.figure(figsize=(20,5))
+res = 1000; let = ['A','B','C','D','E','F','G','H','I','J']
+plt.plot(range(0,test.shape[0],res),test.signal[0::res])
+for i in range(5): plt.plot([i*500000,i*500000],[-5,12.5],'r')
+for j in range(21): plt.plot([j*100000,j*100000],[-5,12.5],'r:')
+for k in range(4): plt.text(k*500000+200000,10,str(k+1),size=20)
+for k in range(10): plt.text(k*100000+40000,7,let[k],size=16)
+plt.xlabel('Row',size=16); plt.ylabel('Channels Open',size=16); 
+plt.title('Test Data Signal - 4 batches - 10 subsamples',size=20)
+plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/iafoss/severstal-fast-ai-256x256-crops
 
 class SegmentationLabelList(SegmentationLabelList):
@@ -429,47 +480,15 @@ class CSVLogger(LearnerCallback):
                  for name, stat in zip(self.header, stats)]
         str_stats = ','.join(stats)
         self.file.write(str_stats + '\n')
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-# Reference: https://www.kaggle.com/code/cdeotte/one-feature-model-0-930
-
-plt.figure(figsize=(20,5))
-res = 1000; let = ['A','B','C','D','E','F','G','H','I','J']
-plt.plot(range(0,test.shape[0],res),test.signal[0::res])
-for i in range(5): plt.plot([i*500000,i*500000],[-5,12.5],'r')
-for j in range(21): plt.plot([j*100000,j*100000],[-5,12.5],'r:')
-for k in range(4): plt.text(k*500000+200000,10,str(k+1),size=20)
-for k in range(10): plt.text(k*100000+40000,7,let[k],size=16)
-plt.xlabel('Row',size=16); plt.ylabel('Channels Open',size=16); 
-plt.title('Test Data Signal - 4 batches - 10 subsamples',size=20)
-plt.show()
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #7
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-# Reference: https://www.kaggle.com/code/xhlulu/exploration-and-preprocessing-for-keras-224x224
-
-label_df = pd.read_csv('../input/train.csv')
-submission_df = pd.read_csv('../input/sample_submission.csv')
-label_df.head()
-label_df['Id'].describe()
-# Display the most frequent ID (without counting new_whale)
-label_df['Id'].value_counts()[1:16].plot(kind='bar')
-def display_samples(df, columns=4, rows=3):
-    fig=plt.figure(figsize=(5*columns, 3*rows))
-
-    for i in range(columns*rows):
-        image_path = df.loc[i,'Image']
-        image_id = df.loc[i,'Id']
-        img = cv2.imread(f'../input/train/{image_path}')
-        fig.add_subplot(rows, columns, i+1)
-        plt.title(image_id)
-        plt.imshow(img)
-
-display_samples(label_df)
+## Exploration
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -491,12 +510,45 @@ def display_samples(df, columns=4, rows=3):
         plt.imshow(img)
 
 display_samples(label_df)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/xhlulu/exploration-and-preprocessing-for-keras-224x224
+
+label_df = pd.read_csv('../input/train.csv')
+submission_df = pd.read_csv('../input/sample_submission.csv')
+label_df.head()
+label_df['Id'].describe()
+# Display the most frequent ID (without counting new_whale)
+label_df['Id'].value_counts()[1:16].plot(kind='bar')
+def display_samples(df, columns=4, rows=3):
+    fig=plt.figure(figsize=(5*columns, 3*rows))
+
+    for i in range(columns*rows):
+        image_path = df.loc[i,'Image']
+        image_id = df.loc[i,'Id']
+        img = cv2.imread(f'../input/train/{image_path}')
+        fig.add_subplot(rows, columns, i+1)
+        plt.title(image_id)
+        plt.imshow(img)
+
+display_samples(label_df)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #8
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import lightgbm as lgb
@@ -572,26 +624,15 @@ param = {'num_leaves': 50,
 num_round = 50000
 clf = lgb.train(param, train, num_round, valid_sets = [train, test], verbose_eval=50, early_stopping_rounds = 500)
 
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #9
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-# Reference: https://www.kaggle.com/code/gpreda/elo-eda-and-prediction
-
-plot_bar(get_categories(new_merchant_trans_df,'city_id'), 
-             'City ID distribution', 'City ID', 'Number of records','brown')
-plot_bar(get_categories(new_merchant_trans_df,'merchant_category_id'), 
-             'Merchant category ID distribution', 'Merchant category ID', 'Number of records','green')
-plot_bar(get_categories(new_merchant_trans_df,'state_id'), 
-             'State ID distribution', 'State ID', 'Number of records','darkblue')
-plot_bar(get_categories(new_merchant_trans_df,'subsector_id'), 
-             'Subsector ID distribution', 'Subsector ID', 'Number of records','darkgreen')
+Let's see city_id, merchant_category_id,  state_id, subsector_id.
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -605,26 +646,28 @@ plot_bar(get_categories(historical_trans_df,'state_id'),
              'State ID distribution', 'State ID', 'Number of records','brown')
 plot_bar(get_categories(historical_trans_df,'subsector_id'), 
              'Subsector ID distribution', 'Subsector ID', 'Number of records','orange')
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+================================================================
 ORIGINAL CODE:
----------------------------------------------------------------------------------------------------
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/gpreda/elo-eda-and-prediction
 
-##plot the feature importance
-logger.info("Feature importance plot")
-cols = (feature_importance_df[["Feature", "importance"]]
-        .groupby("Feature")
-        .mean()
-        .sort_values(by="importance", ascending=False)[:1000].index)
-best_features = feature_importance_df.loc[feature_importance_df.Feature.isin(cols)]
-plt.figure(figsize=(14,26))
-sns.barplot(x="importance", y="Feature", data=best_features.sort_values(by="importance",ascending=False))
-plt.title('LightGBM Features (averaged over folds)')
-plt.tight_layout()
-plt.savefig('lgbm_importances.png')
+plot_bar(get_categories(new_merchant_trans_df,'city_id'), 
+             'City ID distribution', 'City ID', 'Number of records','brown')
+plot_bar(get_categories(new_merchant_trans_df,'merchant_category_id'), 
+             'Merchant category ID distribution', 'Merchant category ID', 'Number of records','green')
+plot_bar(get_categories(new_merchant_trans_df,'state_id'), 
+             'State ID distribution', 'State ID', 'Number of records','darkblue')
+plot_bar(get_categories(new_merchant_trans_df,'subsector_id'), 
+             'Subsector ID distribution', 'Subsector ID', 'Number of records','darkgreen')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #10
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## Feature importance
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -664,6 +707,23 @@ lgbm.plot_importance(modelL,ax = axes,height = 0.5)
 plt.show();plt.close()
 feature_score = pd.DataFrame(train.columns, columns = ['feature']) 
 feature_score['score_lgb'] = modelL.feature_importance()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/gpreda/elo-eda-and-prediction
+
+##plot the feature importance
+logger.info("Feature importance plot")
+cols = (feature_importance_df[["Feature", "importance"]]
+        .groupby("Feature")
+        .mean()
+        .sort_values(by="importance", ascending=False)[:1000].index)
+best_features = feature_importance_df.loc[feature_importance_df.Feature.isin(cols)]
+plt.figure(figsize=(14,26))
+sns.barplot(x="importance", y="Feature", data=best_features.sort_values(by="importance",ascending=False))
+plt.title('LightGBM Features (averaged over folds)')
+plt.tight_layout()
+plt.savefig('lgbm_importances.png')
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

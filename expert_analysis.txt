@@ -1,5 +1,15 @@
-ORIGINAL CODE:
+ITEM #1
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 !pip install meteocalc
 import pandas as pd
 import numpy as np
@@ -16,16 +26,22 @@ import os
 for dirname, _, filenames in os.walk('/kaggle/input'):
     for filename in filenames:
         print(os.path.join(dirname, filename))
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #2
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Operating system
 import sys
 import os
@@ -82,16 +98,32 @@ def log(message):
 LYFT = LyftDataset(data_path=DATA_PATH, json_path=DATA_PATH + 'data', verbose=True)
 # Get object size
 wlhs = np.array([ann['size'] for ann in  LYFT.sample_annotation])
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #3
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+# Dataset
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.gridspec as gridspec
+%matplotlib inline
+
+from trackml.dataset import load_event
+from trackml.randomize import shuffle_hits
+from trackml.score import score_event
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/demesgal/train-inference-gpu-baseline-tta
 
 DATA_ROOT_PATH = '../input/alaska2-image-steganalysis'
@@ -150,26 +182,22 @@ fig, ax = plt.subplots(1, 1, figsize=(16, 8))
     
 ax.set_axis_off()
 ax.imshow(numpy_image);
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #4
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
-import numpy as np
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.gridspec as gridspec
-%matplotlib inline
-
-from trackml.dataset import load_event
-from trackml.randomize import shuffle_hits
-from trackml.score import score_event
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+[]
+================================================================
 ORIGINAL CODE:
----------------------------------------------------------------------------------------------------
+----------------------------------------------------
 import copy
 import gc
 import glob
@@ -196,16 +224,22 @@ from tqdm import tqdm
 pd.options.display.max_columns = 128
 pd.options.display.max_rows = 128
 plt.rcParams['figure.figsize'] = (15, 8)
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #5
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # This Python 3 environment comes with many helpful analytics libraries installed
 # It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
 # For example, here's several helpful packages to load in 
@@ -257,16 +291,22 @@ set(train['bin_0'].isna())
 corr = train.corr()
 plt.figure(figsize=(10,10))
 ax = sns.heatmap(corr,vmin=-1, vmax=1, center=0,cmap='coolwarm',square=True)
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #6
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # This Python 3 environment comes with many helpful analytics libraries installed
 # It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
 # For example, here's several helpful packages to load
@@ -295,16 +335,22 @@ FIGURE_SIZE = (20, 10)
 plt.rcParams['axes.grid'] = True
 
 %matplotlib inline
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #7
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # This Python 3 environment comes with many helpful analytics libraries installed
 # It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
 # For example, here's several helpful packages to load in 
@@ -341,16 +387,22 @@ from keras import initializers, regularizers, constraints
 from keras.engine.input_layer import Input
 from keras import backend as K
 from keras.models import Model
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #8
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 from datetime import datetime 
 start_real = datetime.now()
 #Importing libraries
@@ -453,16 +505,49 @@ f,ax = plt.subplots(figsize=(12,9))
 
 #Draw the heatmap using seaborn
 sns.heatmap(corr, cmap='inferno', annot=True)
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #9
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+# CORRELATION
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/juanmah/ashrae-degree-hours
+
+timeseries_cooling = timeseries[
+    ["building_id", "meter", 'air_temperature']
+    + [cdh for cdh in weather_train.columns.to_list() if "cooling_degree_hours" in cdh]
+]
+timeseries_cooling = pd.wide_to_long(
+    timeseries_cooling,
+    stubnames="cooling_degree_hours_",
+    i=["building_id", "meter", 'air_temperature'],
+    j="base_temperature",
+)
+timeseries_cooling.reset_index(inplace=True)
+fig = px.scatter(
+    timeseries_cooling,
+    x="air_temperature",
+    y="cooling_degree_hours_",
+    color="meter",
+    animation_frame="base_temperature",        
+    opacity=0.7,
+    marginal_x="violin",
+    marginal_y="violin",
+    hover_name="building_id",
+    category_orders=category_orders,
+    color_discrete_map=color_discrete_map_meter,
+)
+fig.update_layout(yaxis=dict(range=[-1, 1]))
+fig.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/mbkinaci/eda-xgboost-ridge-knn-extratrees-regression
 
 corr_list = ['percent_atom_al','percent_atom_ga','percent_atom_in','bandgap_energy_ev','formation_energy_ev_natom']
@@ -599,43 +684,22 @@ plt.show()
 data[(data['number_of_total_atoms']==10) & (data['formation_energy_ev_natom']>0.3)]
 data = data.drop([1235,1983])
 data.shape
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #10
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
-# Reference: https://www.kaggle.com/code/juanmah/ashrae-degree-hours
-
-timeseries_cooling = timeseries[
-    ["building_id", "meter", 'air_temperature']
-    + [cdh for cdh in weather_train.columns.to_list() if "cooling_degree_hours" in cdh]
-]
-timeseries_cooling = pd.wide_to_long(
-    timeseries_cooling,
-    stubnames="cooling_degree_hours_",
-    i=["building_id", "meter", 'air_temperature'],
-    j="base_temperature",
-)
-timeseries_cooling.reset_index(inplace=True)
-fig = px.scatter(
-    timeseries_cooling,
-    x="air_temperature",
-    y="cooling_degree_hours_",
-    color="meter",
-    animation_frame="base_temperature",        
-    opacity=0.7,
-    marginal_x="violin",
-    marginal_y="violin",
-    hover_name="building_id",
-    category_orders=category_orders,
-    color_discrete_map=color_discrete_map_meter,
-)
-fig.update_layout(yaxis=dict(range=[-1, 1]))
-fig.show()
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+[]
+================================================================
 ORIGINAL CODE:
----------------------------------------------------------------------------------------------------
+----------------------------------------------------
 # This Python 3 environment comes with many helpful analytics libraries installed
 # It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
 # For example, here's several helpful packages to load in 
@@ -672,10 +736,6 @@ from keras.layers import *
 from keras.optimizers import Adam, RMSprop
 from keras.applications.nasnet import  preprocess_input
 from keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

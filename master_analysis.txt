@@ -1,19 +1,35 @@
-ORIGINAL CODE:
+ITEM #1
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-%matplotlib inline
+
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
 []
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #2
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,16 +37,22 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.ensemble import RandomForestRegressor
 %matplotlib inline
 import seaborn as sns
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #3
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 import pandas as pd
 import numpy as np
 from scipy.optimize import curve_fit
@@ -523,38 +545,15 @@ for valday in [
     
 TMP1B = train1.loc[ (train1.Date>='2020-05-11') ].copy()
 TMP1B.shape    
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #4
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-# Reference: https://www.kaggle.com/code/jsaguiar/complete-eda-time-series-with-plotly
-
-item_sum = df.groupby(['item', 'date'])['sales'].sum()
-traces = []
-
-for i in range(1, 51):
-    s = item_sum[i].to_frame().reset_index()
-    trace = go.Box(y= s.sales, name= 'Item {}'.format(i), jitter=0.8, whiskerwidth=0.2, marker=dict(size=2), line=dict(width=1))
-    traces.append(trace)
-
-layout = go.Layout(
-    title='Sales BoxPlot for each item',
-    yaxis=dict(
-        autorange=True, showgrid=True, zeroline=True,
-        gridcolor='rgb(233,233,233)', zerolinecolor='rgb(255, 255, 255)',
-        zerolinewidth=2, gridwidth=1
-    ),
-    margin=dict(l=40, r=30, b=80, t=100), showlegend=False,
-)
-
-fig = go.Figure(data=traces, layout=layout)
-iplot(fig)
+**Boxplot**
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -580,12 +579,60 @@ layout = go.Layout(
 
 fig = go.Figure(data=traces, layout=layout)
 iplot(fig)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/jsaguiar/complete-eda-time-series-with-plotly
+
+item_sum = df.groupby(['item', 'date'])['sales'].sum()
+traces = []
+
+for i in range(1, 51):
+    s = item_sum[i].to_frame().reset_index()
+    trace = go.Box(y= s.sales, name= 'Item {}'.format(i), jitter=0.8, whiskerwidth=0.2, marker=dict(size=2), line=dict(width=1))
+    traces.append(trace)
+
+layout = go.Layout(
+    title='Sales BoxPlot for each item',
+    yaxis=dict(
+        autorange=True, showgrid=True, zeroline=True,
+        gridcolor='rgb(233,233,233)', zerolinecolor='rgb(255, 255, 255)',
+        zerolinewidth=2, gridwidth=1
+    ),
+    margin=dict(l=40, r=30, b=80, t=100), showlegend=False,
+)
+
+fig = go.Figure(data=traces, layout=layout)
+iplot(fig)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #5
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+## Training
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/kashnitsky/amazon-product-reviews-classification-with-ulmfit
+
+%%time
+learn = language_model_learner(data_lm, drop_mult=0.3, arch=AWD_LSTM)
+%%time
+learn.lr_find(start_lr = slice(10e-7, 10e-5), end_lr=slice(0.1, 10))
+learn.recorder.plot(skip_end=10, suggestion=True)
+best_lm_lr = 3e-3 #learn.recorder.min_grad_lr
+# best_lm_lr
+%%time
+learn.fit_one_cycle(1, best_lm_lr)
+learn.unfreeze()
+%%time
+learn.fit_one_cycle(5, best_lm_lr)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/hmendonca/aptos19-regressor-fastai-oversampling-tta
 
 learn.lr_find(end_lr=0.5)
@@ -616,50 +663,37 @@ learn.save('stage-3')
 learn.recorder.plot_losses()
 # # schedule of the lr (left) and momentum (right) that the 1cycle policy uses
 # learn.recorder.plot_lr(show_moms=True)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #6
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
-# Reference: https://www.kaggle.com/code/kashnitsky/amazon-product-reviews-classification-with-ulmfit
-
-%%time
-learn = language_model_learner(data_lm, drop_mult=0.3, arch=AWD_LSTM)
-%%time
-learn.lr_find(start_lr = slice(10e-7, 10e-5), end_lr=slice(0.1, 10))
-learn.recorder.plot(skip_end=10, suggestion=True)
-best_lm_lr = 3e-3 #learn.recorder.min_grad_lr
-# best_lm_lr
-%%time
-learn.fit_one_cycle(1, best_lm_lr)
-learn.unfreeze()
-%%time
-learn.fit_one_cycle(5, best_lm_lr)
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+[]
+================================================================
 ORIGINAL CODE:
----------------------------------------------------------------------------------------------------
+----------------------------------------------------
 from PIL import Image, ImageDraw, ImageFont
 from os import listdir
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 %matplotlib inline
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #7
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
-# Reference: https://www.kaggle.com/code/bulentsiyah/dogs-vs-cats-classification-vgg16-fine-tuning
-
-sample = random.choice(filenames)
-image = load_img("../input/train/train/"+sample)
-plt.imshow(image)
+# See sample image
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
@@ -673,12 +707,30 @@ sample_img = (25*(xx+yy)+np.random.uniform(-10, 10, size=(5, 5))).astype('uint8'
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6,3))
 sns.heatmap(sample_img, annot=True,fmt='02d', ax=ax1, cmap='viridis')
 ax2.hist(sample_img.ravel(), bins_sample_8bit, label='Original', alpha=1)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/bulentsiyah/dogs-vs-cats-classification-vgg16-fine-tuning
+
+sample = random.choice(filenames)
+image = load_img("../input/train/train/"+sample)
+plt.imshow(image)
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #8
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+[]
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/bulentsiyah/dogs-vs-cats-classification-vgg16-fine-tuning
 
 loss, accuracy = model.evaluate_generator(validation_generator, total_validate//batch_size, workers=12)
@@ -726,16 +778,57 @@ from sklearn.metrics import classification_report
 report = classification_report(Y_val, y_final, target_names=['0','1'])
 
 print(report)
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-ORIGINAL CODE:
+ITEM #9
+
+ORIGINAL MARKDOWN:
 ---------------------------------------------------------------------------------------------------
+## Model training
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/gogo827jz/deeper-efficientnet-b7
+
+# Need this line so Google will recite some incantations
+# for Turing to magically load the model onto the TPU
+with strategy.scope():
+    enet = efn.EfficientNetB7(
+        input_shape=(512, 512, 3),
+        weights='imagenet',
+        include_top=False
+    )
+    x = enet.output
+    x1 = tf.keras.layers.GlobalMaxPooling2D()(x)
+    x2 = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Concatenate()([x1, x2])
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
+    x = tf.keras.layers.Dense(512, activation='elu')(x)
+    y = tf.keras.layers.Dense(len(CLASSES), activation='softmax')(x)
+    
+    model = tf.keras.Model(inputs=enet.input, outputs=y)
+        
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(lr=0.0001),
+    loss = 'sparse_categorical_crossentropy',
+    metrics=['sparse_categorical_accuracy']
+)
+model.summary()
+tf.keras.utils.plot_model(
+    model,
+    to_file='DeepEfficientNetB7.png',
+    show_shapes=False,
+    show_layer_names=True,
+    rankdir='TB',
+    expand_nested=False,
+    dpi=96
+)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
 # Reference: https://www.kaggle.com/code/ryches/turbo-charging-andrew-s-pytorch
 
 runner.train(
@@ -782,51 +875,22 @@ for i, (batch, output) in enumerate(tqdm.tqdm(zip(
 import gc
 torch.cuda.empty_cache()
 gc.collect()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #10
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+
 ================================================================
 RECOMMENDED CODE:
 ----------------------------------------------------
-# Reference: https://www.kaggle.com/code/gogo827jz/deeper-efficientnet-b7
-
-# Need this line so Google will recite some incantations
-# for Turing to magically load the model onto the TPU
-with strategy.scope():
-    enet = efn.EfficientNetB7(
-        input_shape=(512, 512, 3),
-        weights='imagenet',
-        include_top=False
-    )
-    x = enet.output
-    x1 = tf.keras.layers.GlobalMaxPooling2D()(x)
-    x2 = tf.keras.layers.GlobalAveragePooling2D()(x)
-    x = tf.keras.layers.Concatenate()([x1, x2])
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Dropout(0.5)(x)
-    x = tf.keras.layers.Dense(512, activation='elu')(x)
-    y = tf.keras.layers.Dense(len(CLASSES), activation='softmax')(x)
-    
-    model = tf.keras.Model(inputs=enet.input, outputs=y)
-        
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(lr=0.0001),
-    loss = 'sparse_categorical_crossentropy',
-    metrics=['sparse_categorical_accuracy']
-)
-model.summary()
-tf.keras.utils.plot_model(
-    model,
-    to_file='DeepEfficientNetB7.png',
-    show_shapes=False,
-    show_layer_names=True,
-    rankdir='TB',
-    expand_nested=False,
-    dpi=96
-)
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+[]
+================================================================
 ORIGINAL CODE:
----------------------------------------------------------------------------------------------------
+----------------------------------------------------
 %matplotlib inline
 import pandas as pd
 from IPython.core.interactiveshell import InteractiveShell
@@ -972,10 +1036,6 @@ def calculate_lb_and_ensemble(week, top_ranks=10):
 
     return submissions, lb, ens, daily_error, fig
     
-================================================================
-RECOMMENDED CODE:
-----------------------------------------------------
-[]
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
