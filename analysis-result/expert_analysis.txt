@@ -1,0 +1,1953 @@
+ITEM #1
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+# Dataset
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.gridspec as gridspec
+%matplotlib inline
+
+from trackml.dataset import load_event
+from trackml.randomize import shuffle_hits
+from trackml.score import score_event
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/demesgal/train-inference-gpu-baseline-tta
+
+DATA_ROOT_PATH = '../input/alaska2-image-steganalysis'
+
+def onehot(size, target):
+    vec = torch.zeros(size, dtype=torch.float32)
+    vec[target] = 1.
+    return vec
+
+class DatasetRetriever(Dataset):
+
+    def __init__(self, kinds, image_names, labels, transforms=None):
+        super().__init__()
+        self.kinds = kinds
+        self.image_names = image_names
+        self.labels = labels
+        self.transforms = transforms
+
+    def __getitem__(self, index: int):
+        kind, image_name, label = self.kinds[index], self.image_names[index], self.labels[index]
+        image = cv2.imread(f'{DATA_ROOT_PATH}/{kind}/{image_name}', cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        image /= 255.0
+        if self.transforms:
+            sample = {'image': image}
+            sample = self.transforms(**sample)
+            image = sample['image']
+            
+        target = onehot(4, label)
+        return image, target
+
+    def __len__(self) -> int:
+        return self.image_names.shape[0]
+
+    def get_labels(self):
+        return list(self.labels)
+fold_number = 0
+
+train_dataset = DatasetRetriever(
+    kinds=dataset[dataset['fold'] != fold_number].kind.values,
+    image_names=dataset[dataset['fold'] != fold_number].image_name.values,
+    labels=dataset[dataset['fold'] != fold_number].label.values,
+    transforms=get_train_transforms(),
+)
+
+validation_dataset = DatasetRetriever(
+    kinds=dataset[dataset['fold'] == fold_number].kind.values,
+    image_names=dataset[dataset['fold'] == fold_number].image_name.values,
+    labels=dataset[dataset['fold'] == fold_number].label.values,
+    transforms=get_valid_transforms(),
+)
+image, target = train_dataset[0]
+numpy_image = image.permute(1,2,0).cpu().numpy()
+
+fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+    
+ax.set_axis_off()
+ax.imshow(numpy_image);
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #2
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+# CORRELATION
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/juanmah/ashrae-degree-hours
+
+timeseries_cooling = timeseries[
+    ["building_id", "meter", 'air_temperature']
+    + [cdh for cdh in weather_train.columns.to_list() if "cooling_degree_hours" in cdh]
+]
+timeseries_cooling = pd.wide_to_long(
+    timeseries_cooling,
+    stubnames="cooling_degree_hours_",
+    i=["building_id", "meter", 'air_temperature'],
+    j="base_temperature",
+)
+timeseries_cooling.reset_index(inplace=True)
+fig = px.scatter(
+    timeseries_cooling,
+    x="air_temperature",
+    y="cooling_degree_hours_",
+    color="meter",
+    animation_frame="base_temperature",        
+    opacity=0.7,
+    marginal_x="violin",
+    marginal_y="violin",
+    hover_name="building_id",
+    category_orders=category_orders,
+    color_discrete_map=color_discrete_map_meter,
+)
+fig.update_layout(yaxis=dict(range=[-1, 1]))
+fig.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/mbkinaci/eda-xgboost-ridge-knn-extratrees-regression
+
+corr_list = ['percent_atom_al','percent_atom_ga','percent_atom_in','bandgap_energy_ev','formation_energy_ev_natom']
+corr = data[data['train_or_not'] ==1][corr_list].corr()
+f,ax = plt.subplots(figsize=(12,9))
+
+#Draw the heatmap using seaborn
+sns.heatmap(corr, cmap='winter_r', annot=True)
+data[data['train_or_not'] ==1]['bandgap_energy_ev'].hist(bins = 100,color = 'green')
+data[data['train_or_not'] ==1]['formation_energy_ev_natom'].hist(bins = 100,color='red')
+data.head()
+def area_calculator(x):
+    a = x['one_to_two']
+    b = x['one_to_three']
+    c = x['two_to_three']
+    p = (a+b+c)/2
+    return np.sqrt(p*(p-a)*(p-b)*(p-c))
+data['area'] = data.apply(area_calculator,axis=1)
+data.head()
+data[data['train_or_not'] ==1][['area','formation_energy_ev_natom','bandgap_energy_ev']].corr()
+data[data['train_or_not'] ==1].plot(kind = "scatter",x='area',y ='formation_energy_ev_natom',marker='.',figsize=(10,5))
+def area_bucket(x):
+    if (x>10) & (x<65):
+        return 1
+    elif (x>65) & (x<95):
+        return 2
+    elif (x>95) & (x<120):
+        return 3
+    else:
+        return 4
+data['area_bucket'] = data['area'].map(lambda x: area_bucket(x))
+data.groupby('area_bucket')['formation_energy_ev_natom'].mean()
+data['area_bucket_3'] = data['area_bucket'].map(lambda x: 1 if x==3 else 0)
+data['area_bucket_4'] = data['area_bucket'].map(lambda x: 1 if x==4 else 0)
+del data['area_bucket']
+from pylab import rcParams
+rcParams['figure.figsize'] = 20, 10
+colors = ['b', 'c', 'y', 'm', 'r','g','k','pink','orange','purple']
+
+c0 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 0)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 0)]['formation_energy_ev_natom'], marker='x', color=colors[0])
+c1 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 1)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 1)]['formation_energy_ev_natom'], marker='o', color=colors[1])
+c2 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 2)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 2)]['formation_energy_ev_natom'], marker='.', color=colors[2])
+c3 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 3)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 3)]['formation_energy_ev_natom'], marker='^', color=colors[3])
+c4 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 4)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 4)]['formation_energy_ev_natom'], marker='+', color=colors[4])
+c5 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 5)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 5)]['formation_energy_ev_natom'], marker='v', color=colors[5])
+c6 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 6)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 6)]['formation_energy_ev_natom'], marker='_', color=colors[6])
+c7 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 7)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 7)]['formation_energy_ev_natom'], marker='*', color=colors[7])
+c8 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 8)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 8)]['formation_energy_ev_natom'], marker='s', color=colors[8])
+c9 = plt.scatter(data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 9)]['bandgap_energy_ev'], data[(data['train_or_not'] ==1)&(data['clusters_of_lattices'] == 9)]['formation_energy_ev_natom'], marker='d', color=colors[9])
+
+plt
+plt.xlabel("bandgap_energy_ev")
+plt.ylabel("formation_energy_ev_natom")
+plt.legend((c0, c1, c2, c3, c4, c5, c6,c7,c8,c9),
+           ('cluster0','cluster1','cluster2','cluster3','cluster4','cluster5','cluster6','cluster7','cluster8','cluster9'),
+           scatterpoints=1,
+           loc='upper right',
+           ncol=2,
+           fontsize=10)
+
+plt.show()
+rcParams['figure.figsize'] = 10, 5
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['lattice_angle_alpha_degree'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['lattice_angle_alpha_degree'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle alpha degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('lattice alpha degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('lattice alpha degree')
+ax[1].legend(loc=0)
+
+plt.show()
+len(data[(data['lattice_angle_alpha_degree']<92.5) & (data['lattice_angle_alpha_degree']>89.5)])
+rcParams['figure.figsize'] = 10, 5
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['lattice_angle_beta_degree'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['lattice_angle_beta_degree'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle beta degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('Lattice angle beta degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('Lattice angle beta degree')
+ax[1].legend(loc=0)
+
+plt.show()
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] > 102)]['formation_energy_ev_natom'].mean())
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] < 102)]['formation_energy_ev_natom'].mean())
+data['beta_bigger_102'] = data['lattice_angle_beta_degree'].map(lambda x: 1 if x >102 else 0)
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] > 102)]['bandgap_energy_ev'].mean())
+print(data[(data['train_or_not'] ==1) & (data['lattice_angle_beta_degree'] < 102)]['bandgap_energy_ev'].mean())
+len(data[(data['lattice_angle_beta_degree']<90.5) & (data['lattice_angle_beta_degree']>89.5)])
+rcParams['figure.figsize'] = 8, 4
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['lattice_angle_gamma_degree'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['lattice_angle_gamma_degree'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle gamma degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('degree')
+ax[1].legend(loc=0)
+
+plt.show()
+data['atomic_density'] = data['number_of_total_atoms']/(data['lattice_vector_1_ang']*data['lattice_vector_2_ang']*data['lattice_vector_3_ang'])
+rcParams['figure.figsize'] = 8, 4
+
+fig, ax = plt.subplots(nrows = 2,ncols=1, sharex=True, sharey=True,)
+ax[0].scatter(data[data['train_or_not'] ==1]['number_of_total_atoms'].values, data[data['train_or_not'] ==1]['formation_energy_ev_natom'].values,
+              color='blue', s=3, label='formation', alpha=1)
+ax[1].scatter(data[data['train_or_not'] ==1]['number_of_total_atoms'].values, data[data['train_or_not'] ==1]['bandgap_energy_ev'].values,
+              color='green', s=3, label='bandgap', alpha=1)
+fig.suptitle('Lattice angle gamma degree vs formation and bandgap energy')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('energy')
+ax[0].set_xlabel('degree')
+ax[1].set_ylabel('energy')
+ax[1].set_xlabel('degree')
+ax[1].legend(loc=0)
+
+plt.show()
+data[(data['number_of_total_atoms']==10) & (data['formation_energy_ev_natom']>0.3)]
+data = data.drop([1235,1983])
+data.shape
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #3
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+### Model
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/sanikamal/flower-classification-dnet201-enetb7
+
+def lrfn(epoch):
+    LR_START = 0.00001
+    LR_MAX = 0.00005 * strategy.num_replicas_in_sync
+    LR_MIN = 0.00001
+    LR_RAMPUP_EPOCHS = 10
+    LR_SUSTAIN_EPOCHS = 0
+    LR_EXP_DECAY = .8
+    
+    if epoch < LR_RAMPUP_EPOCHS:
+        lr = (LR_MAX - LR_START) / LR_RAMPUP_EPOCHS * epoch + LR_START
+    elif epoch < LR_RAMPUP_EPOCHS + LR_SUSTAIN_EPOCHS:
+        lr = LR_MAX
+    else:
+        lr = (LR_MAX - LR_MIN) * LR_EXP_DECAY**(epoch - LR_RAMPUP_EPOCHS - LR_SUSTAIN_EPOCHS) + LR_MIN
+    return lr
+lr_callback = tf.keras.callbacks.LearningRateScheduler(lrfn, verbose=True)
+rng = [i for i in range(EPOCHS)]
+y = [lrfn(x) for x in rng]
+plt.plot(rng, y)
+print("Learning rate schedule: {:.3g} to {:.3g} to {:.3g}".format(y[0], max(y), y[-1]))
+def freeze(model):
+    for layer in model.layers:
+        layer.trainable = False
+
+def unfreeze(model):
+    for layer in model.layers:
+        layer.trainable = True
+# Need this line so Google will recite some incantations
+# for Turing to magically load the model onto the TPU
+with strategy.scope():
+#     DenseNet201
+#     rnet = DenseNet201(
+#         input_shape=(512, 512, 3),
+#         weights='imagenet',
+#         include_top=False
+#     )
+# EfficientNetB7
+    enet = efn.EfficientNetB7(
+        input_shape=(512, 512, 3),
+        weights='imagenet',
+        include_top=False
+    )
+
+    model = tf.keras.Sequential([
+        enet,
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(len(CLASSES), activation='softmax')
+    ])
+    
+#     model2 = tf.keras.Sequential([
+#         rnet,
+#         tf.keras.layers.GlobalAveragePooling2D(),
+#         tf.keras.layers.Dense(len(CLASSES), activation='softmax')
+#     ])
+        
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(),
+    loss = 'sparse_categorical_crossentropy',
+    metrics=['sparse_categorical_accuracy']
+)
+model.summary()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/ulrich07/pointwise-ensemble-with-deterministic-uncertainty
+
+def metric( trueFVC, predFVC, predSTD ):
+    
+    clipSTD = np.clip( predSTD, 70 , 9e9 )  
+    
+    deltaFVC = np.clip( np.abs(trueFVC-predFVC), 0 , 1000 )  
+
+    return np.mean( -1*(np.sqrt(2)*deltaFVC/clipSTD) - np.log( np.sqrt(2)*clipSTD ) )
+#
+y = tr['FVC'].values
+z = tr[FE].values
+ze = sub[FE].values
+z.shape
+from sklearn.linear_model import Ridge, ElasticNet
+from sklearn.ensemble import RandomForestClassifier
+NFOLD = 10
+kf = KFold(n_splits=NFOLD)
+#%%time
+cnt = 0
+#clf = ElasticNet(alpha=0.3, l1_ratio = 0.7)
+clf = Ridge(alpha=0.05)
+#clf  = RandomForestClassifier(max_depth=4, random_state=777, n_estimators=50)
+
+pe = np.zeros((ze.shape[0], 2))
+pred = np.zeros((z.shape[0], 2))
+
+for tr_idx, val_idx in kf.split(z):
+    cnt += 1
+    print(f"FOLD {cnt}")
+    clf.fit(z[tr_idx], y[tr_idx]) #
+    #print("predict val...")
+    pred[val_idx, 0] = clf.predict(z[val_idx])
+    pred_std = np.mean(np.abs(y[val_idx] - pred[val_idx, 0])) * np.sqrt(2)
+    pred[val_idx, 1] = pred_std
+    print("val", metric(y[val_idx], pred[val_idx, 0], pred[val_idx, 1]))
+    #print("predict test...")
+    pe[:, 0] += clf.predict(ze) / NFOLD
+    pe[:, 1] += pred_std / NFOLD
+#==============
+print("oof", metric(y, pred[:, 0], pred[:, 1]))
+print("OOF uncertainty", np.unique(pred[:, 1]))
+print("TEST uncertainty", np.unique(pe[:, 1]))
+idxs = np.random.randint(0, y.shape[0], 80)
+plt.plot(y[idxs], label="ground truth")
+plt.plot(pred[idxs, 0], label="prediction")
+plt.legend(loc="best")
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #4
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## Target Variables
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/aldrinl/eda-xgb-geotab-intersection-congestion
+
+target_cols = ['TotalTimeStopped_p20','TotalTimeStopped_p50', 'TotalTimeStopped_p80',
+               'DistanceToFirstStop_p20','DistanceToFirstStop_p50','DistanceToFirstStop_p80']
+train[target_cols].head()
+nrow=3
+ncol=2
+fig, axes = plt.subplots(nrow, ncol,figsize=(20,10))
+count=0
+for r in range(nrow):
+    for c in range(ncol):
+        if(count==len(target_cols)):
+            break
+        col = target_cols[count]
+        
+        axes[r,c].hist(np.log1p(train[col]),bins=100)
+        axes[r,c].set_title('log1p( '+str(col)+' )',fontsize=15)
+        count = count+1
+
+plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/axel81/eda-imet-collection
+
+category_map = {}
+
+def fetch_categories(x):
+    categories = x.split()
+    for category in categories:
+        category = int(category)
+        if category not in category_map.keys():
+                category_map[category] = 0
+        category_map[category] += 1 
+col = train_df['attribute_ids'].apply(lambda x: fetch_categories(x))
+category_df = pd.DataFrame.from_dict(category_map, orient='index', columns=['count']).reset_index().rename(
+    columns={'index': 'attribute_id'})
+category_df.head()
+label_df = label_df.merge(category_df, how='left', on='attribute_id')
+label_df = label_df.sort_values(by='count', ascending=False)
+label_df.head()
+top_20_samples = label_df[:20].copy().reset_index()
+plt.figure(figsize=(10,5))
+sns.barplot(top_20_samples['count'], top_20_samples.index, orient='h')
+plt.title('Number of samples for category (top 20)')
+plt.xlabel('Number of samples')
+plt.ylabel('Categories')
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #5
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+# Feature importances
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/aditya1702/mercedes-benz-data-exploration
+
+for col in train.select_dtypes(['object']).columns:
+    lb=LabelEncoder()
+    lb.fit(train[col])
+    train[col]=lb.transform(train[col])
+    
+x_train=train.drop(['y','ID'],1)
+y_train=train['y']
+
+xgb_params = {
+    'eta': 0.05,
+    'max_depth': 8,
+    'subsample': 0.7,
+    'colsample_bytree': 0.7,
+    'objective': 'reg:linear',
+    'eval_metric': 'rmse',
+    'silent': 1
+}
+dtrain = xgb.DMatrix(x_train, y_train, feature_names=x_train.columns.values)
+model = xgb.train(dict(xgb_params, silent=1), dtrain, num_boost_round=100)
+fig, ax = plt.subplots(figsize=(12,15))
+xgb.plot_importance(model, height=0.8, ax=ax, max_num_features=30)
+plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/fernandoramacciotti/lgbm-bpp-features
+
+# feature_importances
+for tgt in targets:
+    tmp = pd.Series(models[tgt].feature_importance('gain'), index=features)
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    tmp.sort_values(ascending=False).plot.barh(ax=ax)
+    ax.set_title(tgt)
+    fig.tight_layout()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #6
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+### Classifier
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/nikitpatel/home-credit-xgboost
+
+# LightGBM parameters found by Bayesian optimization
+# clf_lgbm = LGBMClassifier(
+#             nthread=4,
+#             n_estimators=10000,
+#             learning_rate=0.02,
+#             num_leaves=34,
+#             colsample_bytree=0.9497036,
+#             subsample=0.8715623,
+#             max_depth=8,
+#             reg_alpha=0.041545473,
+#             reg_lambda=0.0735294,
+#             min_split_gain=0.0222415,
+#             min_child_weight=39.3259775,
+#             silent=-1,
+#             verbose=-1, )
+
+#clf_lgbm.fit(X_train,y_train)
+# imp = clf_lgbm.feature_importances_
+# col_name = data_only.columns
+# d = {'name': col_name,'value':imp}
+# d = pd.DataFrame(data =d)
+# d = d.sort_values(['value'], ascending=False)
+# temp = d.set_index('name')
+# temp[:50].iplot(kind='bar',title="Feature IMportant by LGBMClassifier ")
+# del clf_lgbm, temp
+# gc.collect()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/dromosys/quora-insincere-qc-with-fastai
+
+data = TextClasDataBunch.load(path='.', bs=32)
+data.show_batch()
+learner = text_classifier_learner(data, drop_mult=0.3) #emb_sz=EMBED_SIZE
+learner.load_encoder('fine_tuned_enc')
+learner.freeze()
+#learner.lr_find()
+#learner.recorder.plot()
+learner.fit_one_cycle(1, 5e-2, moms=(0.8,0.7))
+#learner.freeze_to(-2)
+#learner.fit_one_cycle(1, slice(1e-3,1e-1), moms=(0.8,0.7))
+learner.unfreeze()
+learner.fit_one_cycle(1, slice(1e-3/(2.6**4),1e-3), moms=(0.8,0.7))
+#learner.fit_one_cycle(1, slice(1e-3/(2.6**4),1e-3), moms=(0.8,0.7))
+preds, targets = learner.get_preds()
+
+predictions = np.argmax(preds, axis = 1)
+%matplotlib inline
+from sklearn import metrics
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(font_scale=2)
+#predictions = model.predict(X_test, batch_size=1000)
+
+LABELS = ['Normal','Insincere'] 
+
+confusion_matrix = metrics.confusion_matrix(targets, predictions)
+
+plt.figure(figsize=(5, 5))
+sns.heatmap(confusion_matrix, xticklabels=LABELS, yticklabels=LABELS, annot=True, fmt="d", annot_kws={"size": 20});
+plt.title("Confusion matrix", fontsize=20)
+plt.ylabel('True label', fontsize=20)
+plt.xlabel('Predicted label', fontsize=20)
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #7
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+# Helper Functions 
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/mayer79/m5-forecast-dept-by-dept-and-step-by-step
+
+from sklearn.model_selection import train_test_split
+
+LAGS = [7, 28]
+WINDOWS = [7, 28, 56]
+FIRST = 1914
+LENGTH = 28
+
+def demand_features(df):
+    """ Derive features from sales data and remove rows with missing values """
+    
+    for lag in LAGS:
+        df[f'lag_t{lag}'] = df.groupby('id')['demand'].transform(lambda x: x.shift(lag)).astype("float32")
+        for w in WINDOWS:
+            df[f'rolling_mean_lag{lag}_w{w}'] = df.groupby('id')[f'lag_t{lag}'].transform(lambda x: x.rolling(w).mean()).astype("float32")
+        
+    return df
+
+def demand_features_eval(df):
+    """ Same as demand_features but for the step-by-step evaluation """
+    out = df.groupby('id', sort=False).last()
+    for lag in LAGS:
+        out[f'lag_t{lag}'] = df.groupby('id', sort=False)['demand'].nth(-lag-1).astype("float32")
+        for w in WINDOWS:
+            out[f'rolling_mean_lag{lag}_w{w}'] = df.groupby('id', sort=False)['demand'].nth(list(range(-lag-w, -lag))).groupby('id', sort=False).mean().astype("float32")
+    
+    return out.reset_index()
+
+def prep_data(df, drop_d=1000, dept_id="FOODS_1"):
+    """ Prepare model data sets """
+    
+    print(f"\nWorking on dept {dept_id}")
+    # Filter on dept_id
+    df = df[df.dept_id == dept_id]
+    df = df.drop(["dept_id", "cat_id"], axis=1)
+    
+    # Kick out old dates
+    df = df.drop(["d_" + str(i+1) for i in range(drop_d)], axis=1)
+
+    # Reshape to long
+    df = df.assign(id=df.id.str.replace("_validation", ""))
+    df = df.reindex(columns=df.columns.tolist() + ["d_" + str(FIRST + i) for i in range(2 * LENGTH)])
+    df = df.melt(id_vars=["id", "item_id", "store_id", "state_id"], var_name='d', value_name='demand')
+    df = df.assign(d=df.d.str[2:].astype("int64"),
+                   demand=df.demand.astype("float32"))
+    
+    # Add demand features
+    df = demand_features(df)
+    
+    # Remove rows with NAs
+    df = df[df.d > (drop_d + max(LAGS) + max(WINDOWS))]
+ 
+    # Join calendar & prices
+    df = df.merge(calendar, how="left", on="d")
+    df = df.merge(selling_prices, how="left", on=["store_id", "item_id", "wm_yr_wk"])
+    df = df.drop(["wm_yr_wk"], axis=1)
+    
+    # Ordinal encoding of remaining categorical fields
+    for v in ["item_id", "store_id", "state_id"]:
+        df[v] = OrdinalEncoder(dtype="int").fit_transform(df[[v]]).astype("int16") + 1
+    
+    # Determine list of covariables
+    x = list(set(df.columns) - {'id', 'd', 'demand'})
+            
+    # Split into test, valid, train
+    test = df[df.d >= FIRST - max(LAGS) - max(WINDOWS)]
+    df = df[df.d < FIRST]
+
+    xtrain, xvalid, ytrain, yvalid = train_test_split(df[x], df["demand"], test_size=0.1, shuffle=True, random_state=54)
+    train = lgb.Dataset(xtrain, label = ytrain)
+    valid = lgb.Dataset(xvalid, label = yvalid)
+
+    return train, valid, test, x
+
+def fit_model(train, valid, dept):
+    """ Fit LightGBM model """
+     
+    params = {
+        'metric': 'rmse',
+        'objective': 'poisson',
+        'seed': 200,
+        'learning_rate': 0.2 - 0.13 * (dept in ["HOBBIES_1", "HOBBIES_2", "HOUSEHOLD_2"]),
+        'lambda': 0.1,
+        'num_leaves': 50,
+        'colsample_bytree': 0.7
+    }
+
+    fit = lgb.train(params, 
+                    train, 
+                    num_boost_round = 5000, 
+                    valid_sets = [valid], 
+                    early_stopping_rounds = 200,
+                    verbose_eval = 200)
+    
+    lgb.plot_importance(fit, importance_type="gain", precision=0, height=0.5, figsize=(6, 10), title=dept);
+    
+    return fit
+
+def pred_to_csv(fit, test, x, cols=sample_submission.columns, file="submission.csv", first=False):
+    """ Calculate predictions and append to submission csv """
+    
+    # Recursive prediction
+    for i, day in enumerate(np.arange(FIRST, FIRST + LENGTH)):
+        test_day = demand_features_eval(test[(test.d <= day) & (test.d >= day - max(LAGS) - max(WINDOWS))])
+        test.loc[test.d == day, "demand"] = fit.predict(test_day[x]) * 1.03 # https://www.kaggle.com/kyakovlev/m5-dark-magic
+    
+    # Prepare for reshaping
+    test = test.assign(id=test.id + "_" + np.where(test.d < FIRST + LENGTH, "validation", "evaluation"),
+                       F="F" + (test.d - FIRST + 1 - LENGTH * (test.d >= FIRST + LENGTH)).astype("str"))
+    
+    # Reshape
+    submission = test.pivot(index="id", columns="F", values="demand").reset_index()[cols].fillna(1)
+    
+    # Export
+    submission.to_csv(file, index=False, mode='w' if first else 'a', header=first)
+    
+    return True
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/mervebdurna/ieee-fraud-detection-eda
+
+def getCatFeatureDetail(df,cat_cols):
+    cat_detail_dict = {} 
+    for col in cat_cols:
+        cat_detail_dict[col] = df[col].nunique()
+    cat_detail_df = pd.DataFrame.from_dict(cat_detail_dict, orient='index', columns=['nunique'])
+    print('There are ' + str(len(cat_cols)) + ' categorical columns.')
+    print(cat_detail_df)
+    
+
+def reduce_mem_usage(df, verbose=True):
+    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    start_mem = df.memory_usage().sum() / 1024**2    
+    for col in df.columns:
+        col_type = df[col].dtypes
+        if col_type in numerics:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == 'int':
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df[col] = df[col].astype(np.int8)
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df[col] = df[col].astype(np.int16)
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df[col] = df[col].astype(np.int64)  
+            else:
+                if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    df[col] = df[col].astype(np.float16)
+                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)    
+    end_mem = df.memory_usage().sum() / 1024**2
+    if verbose: print('Mem. usage decreased to {:5.2f} Mb ({:.1f}% reduction)'.format(end_mem, 100 * (start_mem - end_mem) / start_mem))
+    return df
+ 
+    
+
+                        
+def ploting_cnt_amt(df, col, lim=2000):
+    tmp = pd.crosstab(df[col], df['isFraud'], normalize='index') * 100
+    tmp = tmp.reset_index()
+    tmp.rename(columns={0:'NoFraud', 1:'Fraud'}, inplace=True)
+    total = len(df)
+    
+    plt.figure(figsize=(16,14))    
+    plt.suptitle(f'{col} Distributions ', fontsize=24)
+    
+    plt.subplot(211)
+    g = sns.countplot( x=col,  data=df, order=list(tmp[col].values))
+    gt = g.twinx()
+    gt = sns.pointplot(x=col, y='Fraud', data=tmp, order=list(tmp[col].values),
+                       color='black', legend=False, )
+    gt.set_ylim(0,tmp['Fraud'].max()*1.1)
+    gt.set_ylabel("%Fraud Transactions", fontsize=16)
+    g.set_title(f"Most Frequent {col} values and % Fraud Transactions", fontsize=20)
+    g.set_xlabel(f"{col} Category Names", fontsize=16)
+    g.set_ylabel("Count", fontsize=17)
+    g.set_xticklabels(g.get_xticklabels(),rotation=45)
+    sizes = []
+    for p in g.patches:
+        height = p.get_height()
+        sizes.append(height)
+        g.text(p.get_x()+p.get_width()/2.,
+                height + 3,
+                '{:1.2f}%'.format(height/total*100),
+                ha="center",fontsize=12) 
+        
+    g.set_ylim(0,max(sizes)*1.15)
+    plt.show()
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #8
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## C 1-14
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def c_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(7,2,figsize=(18,50))
+
+    for feature in features:
+        i += 1
+        plt.subplot(7,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+c_ff(t0, t1, '0', '1', FF[1])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(18,18)})
+corr=df_train[FF[1]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #9
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## D 1-15
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def d_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot') 
+    plt.figure()
+    fig, ax = plt.subplots(5,3,figsize=(18,22))
+    
+    for feature in features:
+        i += 1
+        plt.subplot(5,3,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=13)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+d_ff(t0, t1, '0', '1', FF[2])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(17,17)})
+corr=df_train[FF[2]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #10
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## M 1-9
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def m_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(9,1,figsize=(20,42))
+
+    for feature in features:
+        i += 1
+        plt.subplot(9,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+m_ff(t0, t1, '0', '1', FF[3])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(12,12)})
+corr=df_train[FF[3]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #11
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## iD 1-38
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def id_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(19,2,figsize=(30,60))
+
+    for feature in features:
+        i += 1
+        plt.subplot(19,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.ylabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+id_ff(t0, t1, '0', '1', FF[11])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[11]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #12
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## Other
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def o_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(11,1,figsize=(30,52))
+
+    for feature in features:
+        i += 1
+        plt.subplot(11,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=4)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=4)
+    plt.show();
+
+o_ff(t0, t1, '0', '1', FF[12])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(17,17)})
+corr=df_train[FF[12]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #13
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## C 1-14
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def c_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(7,2,figsize=(18,50))
+
+    for feature in features:
+        i += 1
+        plt.subplot(7,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+c_ff(t0, t1, '0', '1', FF[1])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(18,18)})
+corr=df_train[FF[1]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True ,annot_kws={"size": 10})
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #14
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## D 1-15
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def d_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot') 
+    plt.figure()
+    fig, ax = plt.subplots(5,3,figsize=(18,22))
+    
+    for feature in features:
+        i += 1
+        plt.subplot(5,3,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=13)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+d_ff(t0, t1, '0', '1', FF[2])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(19,19)})
+corr=df_train[FF[2]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 9})
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #15
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## M 1-9
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def m_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(9,1,figsize=(20,42))
+
+    for feature in features:
+        i += 1
+        plt.subplot(9,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+m_ff(t0, t1, '0', '1', FF[3])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(12,12)})
+corr=df_train[FF[3]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 10})
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #16
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 1-50
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[4]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[4]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size":7 })
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #17
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 51-100
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[5]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[5]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 7})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #18
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 101-150
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[6]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[6]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 8})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #19
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 151-200
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[7]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[7]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 6})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #20
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 201-250
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[8]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[8]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 6})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #21
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 251-300
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[9]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[9]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size":6})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #22
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## V 301-339
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[10]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[10]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 6})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #23
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## iD 1-38
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def id_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(19,2,figsize=(30,60))
+
+    for feature in features:
+        i += 1
+        plt.subplot(19,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.ylabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+id_ff(t0, t1, '0', '1', FF[11])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[11]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,annot_kws={"size": 10})
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #24
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## Other
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def o_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(11,1,figsize=(30,52))
+
+    for feature in features:
+        i += 1
+        plt.subplot(11,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=4)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=4)
+    plt.show();
+
+o_ff(t0, t1, '0', '1', FF[12])            
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(17,17)})
+corr=df_train[FF[12]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,annot_kws={"size": 10})
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #25
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## Visualization
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/rishabhiitbhu/visualizing-predictions
+
+def get_lines(boxes, name):
+    '''Takes in boxes, extracts edges and returns `go.Scatter3d` object for those lines'''
+    
+    x_lines = []
+    y_lines = []
+    z_lines = []
+
+    def f_lines_add_nones():
+        x_lines.append(None)
+        y_lines.append(None)
+        z_lines.append(None)
+
+    ixs_box_0 = [0, 1, 2, 3, 0]
+    ixs_box_1 = [4, 5, 6, 7, 4]
+
+    for box in boxes:
+        box = glb_to_sensor(box, sample_data)
+        points = view_points(box.corners(), view=np.eye(3), normalize=False)
+        x_lines.extend(points[0, ixs_box_0])
+        y_lines.extend(points[1, ixs_box_0])
+        z_lines.extend(points[2, ixs_box_0])
+        f_lines_add_nones()
+        x_lines.extend(points[0, ixs_box_1])
+        y_lines.extend(points[1, ixs_box_1])
+        z_lines.extend(points[2, ixs_box_1])
+        f_lines_add_nones()
+        for i in range(4):
+            x_lines.extend(points[0, [ixs_box_0[i], ixs_box_1[i]]])
+            y_lines.extend(points[1, [ixs_box_0[i], ixs_box_1[i]]])
+            z_lines.extend(points[2, [ixs_box_0[i], ixs_box_1[i]]])
+            f_lines_add_nones()
+
+    lines = go.Scatter3d(x=x_lines, y=y_lines, z=z_lines, mode="lines", name=name)
+    return lines
+idx = 0 # change this to visualize other samples
+sample_token = df.iloc[idx]['Id']
+
+sample = lyft.get("sample", sample_token)
+sample_data = lyft.get("sample_data", sample["data"]["LIDAR_TOP"])
+path = sample_data['filename']
+lidar_points = np.fromfile(path, dtype=np.float32, count=-1).reshape([-1, 5])[:, :4]
+
+# plot the points
+df_tmp = pd.DataFrame(lidar_points[:, :3], columns=["x", "y", "z"])
+df_tmp["norm"] = np.sqrt(np.power(df_tmp[["x", "y", "z"]].values, 2).sum(axis=1))
+scatter = go.Scatter3d(
+    x=df_tmp["x"],
+    y=df_tmp["y"],
+    z=df_tmp["z"],
+    mode="markers",
+    marker=dict(size=1, color=df_tmp["norm"], opacity=0.8),
+)
+
+gt_lines = get_lines(gt_boxes[idx], 'gt_boxes')
+pred_lines = get_lines(pred_boxes[idx], 'pred_boxes')
+fig = go.Figure(data=[scatter, gt_lines, pred_lines])
+fig.update_layout(scene_aspectmode="data")
+fig.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/priteshshrivastava/sars-cov-2-exponential-model-week-2
+
+country = "Vietnam"
+df_country = df_val[df_val['Country_Region'] == country].groupby(['Date','Country_Region']).sum().reset_index()
+idx = df_country[((df_country['ConfirmedCases'].isnull() == False) & (df_country['ConfirmedCases'] > 0))].shape[0]
+fig = px.line(df_country, x="Date", y="ConfirmedCases_hat", title='Total Cases of ' + df_country['Country_Region'].values[0])
+fig.add_scatter(x=df_country['Date'][0:idx], y=df_country['ConfirmedCases'][0:idx], mode='lines', name="Actual", showlegend=False)
+fig.show()
+
+fig = px.line(df_country, x="Date", y="Fatalities_hat", title='Total Fatalities of ' + df_country['Country_Region'].values[0])
+fig.add_scatter(x=df_country['Date'][0:idx], y=df_country['Fatalities'][0:idx], mode='lines', name="Actual", showlegend=False)
+fig.show()
+df_total = df_val.groupby(['Date']).sum().reset_index()
+
+idx = df_total[((df_total['ConfirmedCases'].isnull() == False) & (df_total['ConfirmedCases'] > 0))].shape[0]
+fig = px.line(df_total, x="Date", y="ConfirmedCases_hat", title='Total Cases of World')
+fig.add_scatter(x=df_total['Date'][0:idx], y=df_total['ConfirmedCases'][0:idx], mode='lines', name="Actual", showlegend=False)
+fig.show()
+
+fig = px.line(df_total, x="Date", y="Fatalities_hat", title='Total Fatalities of World')
+fig.add_scatter(x=df_total['Date'][0:idx], y=df_total['Fatalities'][0:idx], mode='lines', name="Actual", showlegend=False)
+fig.show()
+df_now = train.groupby(['Date','Country_Region']).sum().reset_index().sort_values('Date').groupby('Country_Region').apply(lambda group: group.iloc[-1:])
+df_now = df_now.sort_values('ConfirmedCases', ascending = False)
+
+fig = go.Figure()
+for country in df_now.sort_values('ConfirmedCases', ascending=False).head(5)['Country_Region'].values:
+    df_country = df_val[df_val['Country_Region'] == country].groupby(['Date','Country_Region']).sum().reset_index()
+    idx = df_country[((df_country['ConfirmedCases'].isnull() == False) & (df_country['ConfirmedCases'] > 0))].shape[0]
+    fig.add_trace(go.Scatter(x=df_country['Date'][0:idx],y= df_country['ConfirmedCases'][0:idx], name = country))
+    fig.add_trace(go.Scatter(x=df_country['Date'],y= df_country['ConfirmedCases_hat'], name = country + ' forecast'))
+fig.update_layout(title_text='Top 5 ConfirmedCases forecast')
+fig.show()
+
+fig = go.Figure()
+for country in df_now.sort_values('Fatalities', ascending=False).head(5)['Country_Region'].values:
+    df_country = df_val[df_val['Country_Region'] == country].groupby(['Date','Country_Region']).sum().reset_index()
+    idx = df_country[((df_country['Fatalities'].isnull() == False) & (df_country['Fatalities'] > 0))].shape[0]
+    fig.add_trace(go.Scatter(x=df_country['Date'][0:idx],y= df_country['Fatalities'][0:idx], name = country))
+    fig.add_trace(go.Scatter(x=df_country['Date'],y= df_country['Fatalities_hat'], name = country + ' forecast'))
+fig.update_layout(title_text='Top 5 Fatalities forecast')
+fig.show()
+df_now = df_now.sort_values('ConfirmedCases', ascending = False)
+fig = make_subplots(rows = 1, cols = 2)
+fig.add_bar(x=df_now['Country_Region'].head(10), y = df_now['ConfirmedCases'].head(10), row=1, col=1, name = 'Total cases')
+df_now = df_now.sort_values('Fatalities', ascending=False)
+fig.add_bar(x=df_now['Country_Region'].head(10), y = df_now['Fatalities'].head(10), row=1, col=2, name = 'Total Fatalities')
+fig.update_layout(title_text='Top 10 Country')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #26
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## Feature Importances
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/aditya1702/mercedes-benz-data-exploration
+
+for col in train.select_dtypes(['object']).columns:
+    lb=LabelEncoder()
+    lb.fit(train[col])
+    train[col]=lb.transform(train[col])
+    
+x_train=train.drop(['y','ID'],1)
+y_train=train['y']
+
+xgb_params = {
+    'eta': 0.05,
+    'max_depth': 8,
+    'subsample': 0.7,
+    'colsample_bytree': 0.7,
+    'objective': 'reg:linear',
+    'eval_metric': 'rmse',
+    'silent': 1
+}
+dtrain = xgb.DMatrix(x_train, y_train, feature_names=x_train.columns.values)
+model = xgb.train(dict(xgb_params, silent=1), dtrain, num_boost_round=100)
+fig, ax = plt.subplots(figsize=(12,15))
+xgb.plot_importance(model, height=0.8, ax=ax, max_num_features=30)
+plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/kirankunapuli/ieee-fraud-lightgbm-with-gpu
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+feature_imp = pd.DataFrame(sorted(zip(clf.feature_importances_,X_train.columns)), columns=['Value','Feature'])
+
+plt.figure(figsize=(20, 10))
+sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False)[:20])
+plt.title('LightGBM Feature Importance - Top 20')
+plt.tight_layout()
+plt.show()
+plt.savefig('lgbm_importances.png')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #27
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+## listing ID
+Theoretically ID variable is not supposed to be included in training a model. However, for some reason listing_id appears to be correlated to the created date time and therefore might be a good candidate as a feature:
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/chriscc/twosigmarenthop-advanced-feature-engineering
+
+sns.jointplot('listing_id', 'created_epoch', full_data)
+min_listing_id = full_data['listing_id'].min()
+max_listing_id = full_data['listing_id'].max()
+full_data['norm_listing_id']=full_data['listing_id'].apply(lambda x:np.float64((x-min_listing_id+1))/(max_listing_id-min_listing_id+1))
+listing_vars = [ 'norm_listing_id']
+full_num_vars = num_vars + date_num_vars + additional_num_vars + interactive_num_vars+ geo_cat_vars +geo_num_vars + count_vars \
+     + listing_vars
+full_cat_vars = LE_vars + mean_coded_vars
+full_vars = full_num_vars + full_cat_vars
+train_x = sparse.hstack([full_data[full_vars], 
+                         feature_sparse, 
+                         desc_sparse, 
+                         st_addr_sparse]).tocsr()[:train_size]
+train_y = full_data['target'][:train_size].values
+test_x = sparse.hstack([full_data[full_vars], 
+                        feature_sparse, 
+                        desc_sparse, 
+                        st_addr_sparse]).tocsr()[train_size:]
+test_y = full_data['target'][train_size:].values
+
+
+full_vars = full_vars + feature_vars + desc_vars + st_addr_vars    
+print ("training data size: ", train_x.shape,"testing data size: ", test_x.shape)
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.1
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.05
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/chriscc/twosigma-model-tuning
+
+sns.jointplot('listing_id', 'created_epoch', full_data)
+min_listing_id = full_data['listing_id'].min()
+max_listing_id = full_data['listing_id'].max()
+full_data['norm_listing_id']=full_data['listing_id'].apply(lambda x:np.float64((x-min_listing_id+1))/(max_listing_id-min_listing_id+1))
+listing_vars = [ 'norm_listing_id']
+full_num_vars = num_vars + date_num_vars + additional_num_vars + interactive_num_vars+ geo_cat_vars +geo_num_vars + count_vars \
+     + listing_vars
+full_cat_vars = LE_vars + mean_coded_vars
+full_vars = full_num_vars + full_cat_vars
+train_x = sparse.hstack([full_data[full_vars], 
+                         feature_sparse, 
+                         desc_sparse, 
+                         st_addr_sparse]).tocsr()[:train_size]
+train_y = full_data['target'][:train_size].values
+test_x = sparse.hstack([full_data[full_vars], 
+                        feature_sparse, 
+                        desc_sparse, 
+                        st_addr_sparse]).tocsr()[train_size:]
+test_y = full_data['target'][train_size:].values
+
+
+full_vars = full_vars + feature_vars + desc_vars + st_addr_vars    
+print ("training data size: ", train_x.shape,"testing data size: ", test_x.shape)
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.1
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.05
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #28
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+### Card
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/pradeepmuniasamy/extensive-eda-fe-models-ieee-fraud-detection
+
+sns.catplot(x="card6", y="TransactionAmt", hue="isFraud", data=train)
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/hassanamin/fraud-complete-eda
+
+cards = ['card1', 'card2', 'card3', 'card4', 'card5', 'card6']
+for i in cards:
+    print ("Unique ",i, " = ",train_transaction[i].nunique())
+fig, ax = plt.subplots(1, 4, figsize=(25,5))
+
+sns.countplot(x="card4", ax=ax[0], data=train_transaction.loc[train_transaction['isFraud'] == 0])
+ax[0].set_title('card4 isFraud=0', fontsize=14)
+sns.countplot(x="card4", ax=ax[1], data=train_transaction.loc[train_transaction['isFraud'] == 1])
+ax[1].set_title('card4 isFraud=1', fontsize=14)
+sns.countplot(x="card6", ax=ax[2], data=train_transaction.loc[train_transaction['isFraud'] == 0])
+ax[2].set_title('card6 isFraud=0', fontsize=14)
+sns.countplot(x="card6", ax=ax[3], data=train_transaction.loc[train_transaction['isFraud'] == 1])
+ax[3].set_title('card6 isFraud=1', fontsize=14)
+plt.show()
+cards = train_transaction.iloc[:,4:7].columns
+
+plt.figure(figsize=(18,8*4))
+gs = gridspec.GridSpec(8, 4)
+for i, cn in enumerate(cards):
+    ax = plt.subplot(gs[i])
+    sns.distplot(train_transaction.loc[train_transaction['isFraud'] == 1][cn], bins=50)
+    sns.distplot(train_transaction.loc[train_transaction['isFraud'] == 0][cn], bins=50)
+    ax.set_xlabel('')
+    ax.set_title('feature: ' + str(cn))
+plt.show()
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #29
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+# Submission
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/aldrinl/eda-rf-2019-data-science-bowl
+
+# gameplay_test was already loaded at the start of this notebook
+gameplay_test = pd.read_csv("/kaggle/input/data-science-bowl-2019/test.csv")
+installation_id = gameplay_test['installation_id']
+gameplay_test.head()
+drop_cols = ['game_session','event_data','installation_id']
+gameplay_test.drop(drop_cols,axis=1,inplace=True)
+gameplay_test = dt_parts(gameplay_test,'timestamp')
+gameplay_test = category_mapping(gameplay_test,gameplay_mapping)
+gameplay_test.shape
+preds_df = pd.DataFrame()
+preds_df['installation_id'] = installation_id
+preds_df['accuracy_group'] = model.predict(gameplay_test)
+
+#this will be used to find which is the majority classif
+preds_df['counter'] = 1
+print(preds_df.shape)
+preds_df = preds_df.groupby(['installation_id','accuracy_group'],as_index=False).sum()
+preds_df['agg'] = preds_df.groupby(['installation_id'],as_index=False)['counter'].transform(np.mean)
+preds_df = preds_df.sort_values('agg').drop_duplicates('installation_id')
+preds_df = preds_df.sort_values('installation_id')
+print(preds_df.shape)
+preds_df.head()
+sub_df = preds_df[['installation_id','accuracy_group']]
+sub_df['accuracy_group'] = sub_df['accuracy_group'].astype(int)
+sub_df.head()
+sub_df.to_csv('submission.csv',index=False)
+sub_df['accuracy_group'].hist()
+plt.show()
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/hassanamin/fraud-complete-eda
+
+sub = pd.read_csv('../input/sample_submission.csv', index_col='TransactionID')
+sub['isFraud'] = y_preds
+sub.to_csv('xgboost.csv')
+sub.head()
+sub.loc[ sub['isFraud']>0.99 , 'isFraud'] = 1
+b = plt.hist(sub['isFraud'], bins=50)
+print ("Predicted {} frauds".format(int(sub[sub['isFraud']==1].sum())))
+del sub, X_train, X_test, importance_df
+gc.collect()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #30
+
+ORIGINAL MARKDOWN:
+---------------------------------------------------------------------------------------------------
+# Code
+================================================================
+RECOMMENDED CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/mahmudds/m5-forecasting-accuracy-analysis-models
+
+import os
+import gc
+import time
+import math
+import datetime
+from math import log, floor
+from sklearn.neighbors import KDTree
+
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from sklearn.utils import shuffle
+from tqdm.notebook import tqdm as tqdm
+
+import seaborn as sns
+from matplotlib import colors
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
+from plotly.subplots import make_subplots
+
+import pywt
+from statsmodels.robust import mad
+
+import scipy
+import statsmodels
+from scipy import signal
+import statsmodels.api as sm
+from fbprophet import Prophet
+from scipy.signal import butter, deconvolve
+from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
+
+import warnings
+warnings.filterwarnings("ignore")
+================================================================
+ORIGINAL CODE:
+----------------------------------------------------
+# Reference: https://www.kaggle.com/code/koza4ukdmitrij/how-to-choose-the-best-solution
+
+def plot_solution(n_cv, n_test, sigma, ax):
+    ## hyperparameters
+    n_pub, n_priv = 0.15 * n_test, 0.85 * n_test
+
+    ## prior losses
+    l0_CV_samples = np.random.normal(loc=L0, scale=SIGMA0, size=int(n_cv))
+    l0_pub_samples = np.random.normal(loc=L0, scale=SIGMA0, size=int(n_pub))
+    l0_priv_samples = np.random.normal(loc=L0, scale=SIGMA0, size=int(n_priv))
+
+    ## mean losess 
+    l0_CV = l0_CV_samples.mean()
+    l0_pub = l0_pub_samples.mean()
+    l0_priv = l0_priv_samples.mean()
+    
+    ## distributions
+    l_CV_samples = np.random.normal(loc=l0_CV, scale=EPS, size=5)
+    l_pub_samples = np.random.normal(loc=l0_pub, scale=sigma, size=5)
+    l_priv_samples = np.random.normal(loc=l0_priv, scale=sigma, size=5)
+    
+    ## ## distributions distributions & samples
+    x = np.linspace(L0 - 1*SIGMA0, L0 + 1*SIGMA0, 100)
+
+    ax.plot(x, stats.norm.pdf(x, l0_CV, EPS), label="CV")
+    _ = ax.scatter(l_CV_samples, 0.2 * np.random.rand(5), marker='x')
+
+    ax.plot(x, stats.norm.pdf(x, l0_pub, sigma), label="public")
+    _ = ax.scatter(l_pub_samples, 0.2 * np.random.rand(5), marker='x')
+
+    ax.plot(x, stats.norm.pdf(x, l0_priv, sigma), label="private")
+    _ = ax.scatter(l_priv_samples, 0.2 * np.random.rand(5), marker='x')
+
+    _ = ax.legend()
+    
+def plot_solutions(n_cv, n_test, sigma):
+    # repeat plot_solution
+    nrows, ncols = 3, 2
+    fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(16, 12))
+
+    for i in range(nrows):
+        for j in range(ncols):
+            plot_solution(n_cv=n_cv, n_test=n_test, sigma=sigma, ax=ax[i][j])
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
