@@ -147,7 +147,7 @@ for file_name in FILES:
                 continue
             count =  count + 1
         
-        with open(f"recommendation result/{data_rank}_result.json", "w") as file:
+        with open(f"recommendation-result/{data_rank}_result.json", "w") as file:
             json.dump(testing_accumulate, file)
             print(f"successfully write to: {data_rank}_result.json ")
 
@@ -159,7 +159,7 @@ FILE_NAMES = [
     "expert_result.json",
 ]
 for name in FILE_NAMES:
-    path = f"recommendation result/{name}"
+    path = f"recommendation-result/{name}"
     data_rank = name[:-12]
 
     with open(path, 'r') as file:
