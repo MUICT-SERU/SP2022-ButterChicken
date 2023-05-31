@@ -306,4 +306,4 @@ with open("comparison_result.json", "r", encoding="utf-8") as f:
 
                 i = i+1
 
-    
+print('Everything finish') 
