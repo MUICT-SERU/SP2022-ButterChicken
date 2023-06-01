@@ -132,9 +132,9 @@ for file_name in FILES:
                 temp_result["bm25Recommendation"]["processed_markdown"] = recommended_code_es_base['processed']
                 temp_result["bm25Recommendation"]["code"] = recommended_code_es_base['code']
 
-                temp_result["bm25ProcessedRecommendation"]["markdown"] = recommended_code_es_base['markdown']
-                temp_result["bm25ProcessedRecommendation"]["processed_markdown"] = recommended_code_es_base['processed']
-                temp_result["bm25ProcessedRecommendation"]["code"] = recommended_code_es_base['code']
+                temp_result["bm25ProcessedRecommendation"]["markdown"] = recommended_code_es_processed['markdown']
+                temp_result["bm25ProcessedRecommendation"]["processed_markdown"] = recommended_code_es_processed['processed']
+                temp_result["bm25ProcessedRecommendation"]["code"] = recommended_code_es_processed['code']
 
                 # Append to the collection
                 testing_accumulate.append(temp_result)
