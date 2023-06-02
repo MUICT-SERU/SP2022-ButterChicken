@@ -1,0 +1,2502 @@
+ITEM #1
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Dataset
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Introduction and table of contents
+___
+
+In this notebook, I made some exploratory analysis in order to better understand what we are dealing with in this competition. The trajectories (both in position and momentum space) of some particles are visualized using the Truth dataset. There are still lots of possible explorations and I'll be adding more analyses as the competetion goes on. 
+
+## Contents
+
+-[Hits dataset](#Hits-dataset)
+
+-[Truth dataset](Truth-dataset)
+
+-[Particles dataset](Particles-dataset)
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/demesgal/train-inference-gpu-baseline-tta
+
+DATA_ROOT_PATH = '../input/alaska2-image-steganalysis'
+
+def onehot(size, target):
+    vec = torch.zeros(size, dtype=torch.float32)
+    vec[target] = 1.
+    return vec
+
+class DatasetRetriever(Dataset):
+
+    def __init__(self, kinds, image_names, labels, transforms=None):
+        super().__init__()
+        self.kinds = kinds
+        self.image_names = image_names
+        self.labels = labels
+        self.transforms = transforms
+
+    def __getitem__(self, index: int):
+        kind, image_name, label = self.kinds[index], self.image_names[index], self.labels[index]
+        image = cv2.imread(f'{DATA_ROOT_PATH}/{kind}/{image_name}', cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        image /= 255.0
+        if self.transforms:
+            sample = {'image': image}
+            sample = self.transforms(**sample)
+            image = sample['image']
+            
+        target = onehot(4, label)
+        return image, target
+
+    def __len__(self) -> int:
+        return self.image_names.shape[0]
+
+    def get_labels(self):
+        return list(self.labels)
+fold_number = 0
+
+train_dataset = DatasetRetriever(
+    kinds=dataset[dataset['fold'] != fold_number].kind.values,
+    image_names=dataset[dataset['fold'] != fold_number].image_name.values,
+    labels=dataset[dataset['fold'] != fold_number].label.values,
+    transforms=get_train_transforms(),
+)
+
+validation_dataset = DatasetRetriever(
+    kinds=dataset[dataset['fold'] == fold_number].kind.values,
+    image_names=dataset[dataset['fold'] == fold_number].image_name.values,
+    labels=dataset[dataset['fold'] == fold_number].label.values,
+    transforms=get_valid_transforms(),
+)
+image, target = train_dataset[0]
+numpy_image = image.permute(1,2,0).cpu().numpy()
+
+fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+    
+ax.set_axis_off()
+ax.imshow(numpy_image);
+==============================
+RECOMMENDED CODE:
+------------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.gridspec as gridspec
+%matplotlib inline
+
+from trackml.dataset import load_event
+from trackml.randomize import shuffle_hits
+from trackml.score import score_event
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rishabhiitbhu/eda-understanding-the-dataset-with-3d-plots
+
+lyftdata.scene[0]
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #2
+
+ORIGINAL MARKDOWN:
+------------------------------
+### Model
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Training Model
+### Load Model into TPU
+
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ulrich07/pointwise-ensemble-with-deterministic-uncertainty
+
+def metric( trueFVC, predFVC, predSTD ):
+    
+    clipSTD = np.clip( predSTD, 70 , 9e9 )  
+    
+    deltaFVC = np.clip( np.abs(trueFVC-predFVC), 0 , 1000 )  
+
+    return np.mean( -1*(np.sqrt(2)*deltaFVC/clipSTD) - np.log( np.sqrt(2)*clipSTD ) )
+#
+y = tr['FVC'].values
+z = tr[FE].values
+ze = sub[FE].values
+z.shape
+from sklearn.linear_model import Ridge, ElasticNet
+from sklearn.ensemble import RandomForestClassifier
+NFOLD = 10
+kf = KFold(n_splits=NFOLD)
+#%%time
+cnt = 0
+#clf = ElasticNet(alpha=0.3, l1_ratio = 0.7)
+clf = Ridge(alpha=0.05)
+#clf  = RandomForestClassifier(max_depth=4, random_state=777, n_estimators=50)
+
+pe = np.zeros((ze.shape[0], 2))
+pred = np.zeros((z.shape[0], 2))
+
+for tr_idx, val_idx in kf.split(z):
+    cnt += 1
+    print(f"FOLD {cnt}")
+    clf.fit(z[tr_idx], y[tr_idx]) #
+    #print("predict val...")
+    pred[val_idx, 0] = clf.predict(z[val_idx])
+    pred_std = np.mean(np.abs(y[val_idx] - pred[val_idx, 0])) * np.sqrt(2)
+    pred[val_idx, 1] = pred_std
+    print("val", metric(y[val_idx], pred[val_idx, 0], pred[val_idx, 1]))
+    #print("predict test...")
+    pe[:, 0] += clf.predict(ze) / NFOLD
+    pe[:, 1] += pred_std / NFOLD
+#==============
+print("oof", metric(y, pred[:, 0], pred[:, 1]))
+print("OOF uncertainty", np.unique(pred[:, 1]))
+print("TEST uncertainty", np.unique(pe[:, 1]))
+idxs = np.random.randint(0, y.shape[0], 80)
+plt.plot(y[idxs], label="ground truth")
+plt.plot(pred[idxs, 0], label="prediction")
+plt.legend(loc="best")
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/sanikamal/flower-classification-dnet201-enetb7
+
+def lrfn(epoch):
+    LR_START = 0.00001
+    LR_MAX = 0.00005 * strategy.num_replicas_in_sync
+    LR_MIN = 0.00001
+    LR_RAMPUP_EPOCHS = 10
+    LR_SUSTAIN_EPOCHS = 0
+    LR_EXP_DECAY = .8
+    
+    if epoch < LR_RAMPUP_EPOCHS:
+        lr = (LR_MAX - LR_START) / LR_RAMPUP_EPOCHS * epoch + LR_START
+    elif epoch < LR_RAMPUP_EPOCHS + LR_SUSTAIN_EPOCHS:
+        lr = LR_MAX
+    else:
+        lr = (LR_MAX - LR_MIN) * LR_EXP_DECAY**(epoch - LR_RAMPUP_EPOCHS - LR_SUSTAIN_EPOCHS) + LR_MIN
+    return lr
+lr_callback = tf.keras.callbacks.LearningRateScheduler(lrfn, verbose=True)
+rng = [i for i in range(EPOCHS)]
+y = [lrfn(x) for x in rng]
+plt.plot(rng, y)
+print("Learning rate schedule: {:.3g} to {:.3g} to {:.3g}".format(y[0], max(y), y[-1]))
+def freeze(model):
+    for layer in model.layers:
+        layer.trainable = False
+
+def unfreeze(model):
+    for layer in model.layers:
+        layer.trainable = True
+# Need this line so Google will recite some incantations
+# for Turing to magically load the model onto the TPU
+with strategy.scope():
+#     DenseNet201
+#     rnet = DenseNet201(
+#         input_shape=(512, 512, 3),
+#         weights='imagenet',
+#         include_top=False
+#     )
+# EfficientNetB7
+    enet = efn.EfficientNetB7(
+        input_shape=(512, 512, 3),
+        weights='imagenet',
+        include_top=False
+    )
+
+    model = tf.keras.Sequential([
+        enet,
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dense(len(CLASSES), activation='softmax')
+    ])
+    
+#     model2 = tf.keras.Sequential([
+#         rnet,
+#         tf.keras.layers.GlobalAveragePooling2D(),
+#         tf.keras.layers.Dense(len(CLASSES), activation='softmax')
+#     ])
+        
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(),
+    loss = 'sparse_categorical_crossentropy',
+    metrics=['sparse_categorical_accuracy']
+)
+model.summary()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+%matplotlib inline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #3
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Target Variables
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Target Variables
+
+Based from the competition description we have 6 target variables. So we will do an analysis of that first.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/axel81/eda-imet-collection
+
+category_map = {}
+
+def fetch_categories(x):
+    categories = x.split()
+    for category in categories:
+        category = int(category)
+        if category not in category_map.keys():
+                category_map[category] = 0
+        category_map[category] += 1 
+col = train_df['attribute_ids'].apply(lambda x: fetch_categories(x))
+category_df = pd.DataFrame.from_dict(category_map, orient='index', columns=['count']).reset_index().rename(
+    columns={'index': 'attribute_id'})
+category_df.head()
+label_df = label_df.merge(category_df, how='left', on='attribute_id')
+label_df = label_df.sort_values(by='count', ascending=False)
+label_df.head()
+top_20_samples = label_df[:20].copy().reset_index()
+plt.figure(figsize=(10,5))
+sns.barplot(top_20_samples['count'], top_20_samples.index, orient='h')
+plt.title('Number of samples for category (top 20)')
+plt.xlabel('Number of samples')
+plt.ylabel('Categories')
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/aldrinl/eda-xgb-geotab-intersection-congestion
+
+target_cols = ['TotalTimeStopped_p20','TotalTimeStopped_p50', 'TotalTimeStopped_p80',
+               'DistanceToFirstStop_p20','DistanceToFirstStop_p50','DistanceToFirstStop_p80']
+train[target_cols].head()
+nrow=3
+ncol=2
+fig, axes = plt.subplots(nrow, ncol,figsize=(20,10))
+count=0
+for r in range(nrow):
+    for c in range(ncol):
+        if(count==len(target_cols)):
+            break
+        col = target_cols[count]
+        
+        axes[r,c].hist(np.log1p(train[col]),bins=100)
+        axes[r,c].set_title('log1p( '+str(col)+' )',fontsize=15)
+        count = count+1
+
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/felipemello/step-by-step-guide-to-the-magic-lb-0-922
+
+for n in [2, 53, 81, 111, 121, 126, 130, 146]:
+    
+    print('Variable', 'var_' + str(n))
+
+    plt.figure(figsize=(15,8))
+
+    count = 1
+
+    for n_unique in list(set(train_df['new_var_' + str(n)]))[:6]:
+
+        var_tar_0 = train_df['var_' + str(n)][(train_df['new_var_' + str(n)] == n_unique) &
+                                              (train_df['target'] == 0)]
+        var_tar_1 = train_df['var_' + str(n)][(train_df['new_var_' + str(n)] == n_unique) &
+                                              (train_df['target'] == 1)]
+
+        var_tar_0
+        samples_0 = len(var_tar_0)
+        samples_1 = len(var_tar_1)
+        
+        if samples_0 < 20 or samples_1 < 20:
+            continue
+            
+        samples_percentage = np.round((samples_0 + samples_1)*100/ 200000)
+        plt.subplot(2, 3, count)
+        sns.kdeplot(var_tar_0, shade=False, color="red", label = 'target = 0')
+        sns.kdeplot(var_tar_1, shade=False, color="blue", label = 'target = 1')
+
+        plt.title('Count = {} represents {}% of the data'.format(n_unique, samples_percentage))
+        plt.xlabel('Feature Values')
+        plt.ylabel('Probability')
+        count += 1
+
+    plt.tight_layout()
+    plt.show()
+    
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #4
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Helper Functions 
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Helper functions
+
+We need the following functions.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mervebdurna/ieee-fraud-detection-eda
+
+def getCatFeatureDetail(df,cat_cols):
+    cat_detail_dict = {} 
+    for col in cat_cols:
+        cat_detail_dict[col] = df[col].nunique()
+    cat_detail_df = pd.DataFrame.from_dict(cat_detail_dict, orient='index', columns=['nunique'])
+    print('There are ' + str(len(cat_cols)) + ' categorical columns.')
+    print(cat_detail_df)
+    
+
+def reduce_mem_usage(df, verbose=True):
+    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    start_mem = df.memory_usage().sum() / 1024**2    
+    for col in df.columns:
+        col_type = df[col].dtypes
+        if col_type in numerics:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == 'int':
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df[col] = df[col].astype(np.int8)
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df[col] = df[col].astype(np.int16)
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df[col] = df[col].astype(np.int64)  
+            else:
+                if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    df[col] = df[col].astype(np.float16)
+                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                if c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)    
+    end_mem = df.memory_usage().sum() / 1024**2
+    if verbose: print('Mem. usage decreased to {:5.2f} Mb ({:.1f}% reduction)'.format(end_mem, 100 * (start_mem - end_mem) / start_mem))
+    return df
+ 
+    
+
+                        
+def ploting_cnt_amt(df, col, lim=2000):
+    tmp = pd.crosstab(df[col], df['isFraud'], normalize='index') * 100
+    tmp = tmp.reset_index()
+    tmp.rename(columns={0:'NoFraud', 1:'Fraud'}, inplace=True)
+    total = len(df)
+    
+    plt.figure(figsize=(16,14))    
+    plt.suptitle(f'{col} Distributions ', fontsize=24)
+    
+    plt.subplot(211)
+    g = sns.countplot( x=col,  data=df, order=list(tmp[col].values))
+    gt = g.twinx()
+    gt = sns.pointplot(x=col, y='Fraud', data=tmp, order=list(tmp[col].values),
+                       color='black', legend=False, )
+    gt.set_ylim(0,tmp['Fraud'].max()*1.1)
+    gt.set_ylabel("%Fraud Transactions", fontsize=16)
+    g.set_title(f"Most Frequent {col} values and % Fraud Transactions", fontsize=20)
+    g.set_xlabel(f"{col} Category Names", fontsize=16)
+    g.set_ylabel("Count", fontsize=17)
+    g.set_xticklabels(g.get_xticklabels(),rotation=45)
+    sizes = []
+    for p in g.patches:
+        height = p.get_height()
+        sizes.append(height)
+        g.text(p.get_x()+p.get_width()/2.,
+                height + 3,
+                '{:1.2f}%'.format(height/total*100),
+                ha="center",fontsize=12) 
+        
+    g.set_ylim(0,max(sizes)*1.15)
+    plt.show()
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mayer79/m5-forecast-dept-by-dept-and-step-by-step
+
+from sklearn.model_selection import train_test_split
+
+LAGS = [7, 28]
+WINDOWS = [7, 28, 56]
+FIRST = 1914
+LENGTH = 28
+
+def demand_features(df):
+    """ Derive features from sales data and remove rows with missing values """
+    
+    for lag in LAGS:
+        df[f'lag_t{lag}'] = df.groupby('id')['demand'].transform(lambda x: x.shift(lag)).astype("float32")
+        for w in WINDOWS:
+            df[f'rolling_mean_lag{lag}_w{w}'] = df.groupby('id')[f'lag_t{lag}'].transform(lambda x: x.rolling(w).mean()).astype("float32")
+        
+    return df
+
+def demand_features_eval(df):
+    """ Same as demand_features but for the step-by-step evaluation """
+    out = df.groupby('id', sort=False).last()
+    for lag in LAGS:
+        out[f'lag_t{lag}'] = df.groupby('id', sort=False)['demand'].nth(-lag-1).astype("float32")
+        for w in WINDOWS:
+            out[f'rolling_mean_lag{lag}_w{w}'] = df.groupby('id', sort=False)['demand'].nth(list(range(-lag-w, -lag))).groupby('id', sort=False).mean().astype("float32")
+    
+    return out.reset_index()
+
+def prep_data(df, drop_d=1000, dept_id="FOODS_1"):
+    """ Prepare model data sets """
+    
+    print(f"\nWorking on dept {dept_id}")
+    # Filter on dept_id
+    df = df[df.dept_id == dept_id]
+    df = df.drop(["dept_id", "cat_id"], axis=1)
+    
+    # Kick out old dates
+    df = df.drop(["d_" + str(i+1) for i in range(drop_d)], axis=1)
+
+    # Reshape to long
+    df = df.assign(id=df.id.str.replace("_validation", ""))
+    df = df.reindex(columns=df.columns.tolist() + ["d_" + str(FIRST + i) for i in range(2 * LENGTH)])
+    df = df.melt(id_vars=["id", "item_id", "store_id", "state_id"], var_name='d', value_name='demand')
+    df = df.assign(d=df.d.str[2:].astype("int64"),
+                   demand=df.demand.astype("float32"))
+    
+    # Add demand features
+    df = demand_features(df)
+    
+    # Remove rows with NAs
+    df = df[df.d > (drop_d + max(LAGS) + max(WINDOWS))]
+ 
+    # Join calendar & prices
+    df = df.merge(calendar, how="left", on="d")
+    df = df.merge(selling_prices, how="left", on=["store_id", "item_id", "wm_yr_wk"])
+    df = df.drop(["wm_yr_wk"], axis=1)
+    
+    # Ordinal encoding of remaining categorical fields
+    for v in ["item_id", "store_id", "state_id"]:
+        df[v] = OrdinalEncoder(dtype="int").fit_transform(df[[v]]).astype("int16") + 1
+    
+    # Determine list of covariables
+    x = list(set(df.columns) - {'id', 'd', 'demand'})
+            
+    # Split into test, valid, train
+    test = df[df.d >= FIRST - max(LAGS) - max(WINDOWS)]
+    df = df[df.d < FIRST]
+
+    xtrain, xvalid, ytrain, yvalid = train_test_split(df[x], df["demand"], test_size=0.1, shuffle=True, random_state=54)
+    train = lgb.Dataset(xtrain, label = ytrain)
+    valid = lgb.Dataset(xvalid, label = yvalid)
+
+    return train, valid, test, x
+
+def fit_model(train, valid, dept):
+    """ Fit LightGBM model """
+     
+    params = {
+        'metric': 'rmse',
+        'objective': 'poisson',
+        'seed': 200,
+        'learning_rate': 0.2 - 0.13 * (dept in ["HOBBIES_1", "HOBBIES_2", "HOUSEHOLD_2"]),
+        'lambda': 0.1,
+        'num_leaves': 50,
+        'colsample_bytree': 0.7
+    }
+
+    fit = lgb.train(params, 
+                    train, 
+                    num_boost_round = 5000, 
+                    valid_sets = [valid], 
+                    early_stopping_rounds = 200,
+                    verbose_eval = 200)
+    
+    lgb.plot_importance(fit, importance_type="gain", precision=0, height=0.5, figsize=(6, 10), title=dept);
+    
+    return fit
+
+def pred_to_csv(fit, test, x, cols=sample_submission.columns, file="submission.csv", first=False):
+    """ Calculate predictions and append to submission csv """
+    
+    # Recursive prediction
+    for i, day in enumerate(np.arange(FIRST, FIRST + LENGTH)):
+        test_day = demand_features_eval(test[(test.d <= day) & (test.d >= day - max(LAGS) - max(WINDOWS))])
+        test.loc[test.d == day, "demand"] = fit.predict(test_day[x]) * 1.03 # https://www.kaggle.com/kyakovlev/m5-dark-magic
+    
+    # Prepare for reshaping
+    test = test.assign(id=test.id + "_" + np.where(test.d < FIRST + LENGTH, "validation", "evaluation"),
+                       F="F" + (test.d - FIRST + 1 - LENGTH * (test.d >= FIRST + LENGTH)).astype("str"))
+    
+    # Reshape
+    submission = test.pivot(index="id", columns="F", values="demand").reset_index()[cols].fillna(1)
+    
+    # Export
+    submission.to_csv(file, index=False, mode='w' if first else 'a', header=first)
+    
+    return True
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+import re
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import numpy as np
+import pandas as pd
+import random as rn
+import seaborn as sns
+import tensorflow as tf
+from tqdm.notebook import tqdm
+import matplotlib.pyplot as plt  
+from urllib.parse import urlparse
+import plotly as ply
+#clean data
+puncts = [',', '.', '"', ':', ')', '(', '-', '!', '?', '|', ';', '$', '&', '/', '[', ']', '>', '%', '=', '#', '*', '+', '\\', '•',  '~', '@', '£',
+ '·', '_', '{', '}', '©', '^', '®', '`',  '<', '→', '°', '€', '™', '›',  '♥', '←', '×', '§', '″', '′', 'Â', '█', '½', 'à', '…', '\xa0', '\t',
+ '“', '★', '”', '–', '●', 'â', '►', '−', '¢', '²', '¬', '░', '¶', '↑', '±', '¿', '▾', '═', '¦', '║', '―', '¥', '▓', '—', '‹', '─', '\u3000', '\u202f',
+ '▒', '：', '¼', '⊕', '▼', '▪', '†', '■', '’', '▀', '¨', '▄', '♫', '☆', 'é', '¯', '♦', '¤', '▲', 'è', '¸', '¾', 'Ã', '⋅', '‘', '∞', '«',
+ '∙', '）', '↓', '、', '│', '（', '»', '，', '♪', '╩', '╚', '³', '・', '╦', '╣', '╔', '╗', '▬', '❤', 'ï', 'Ø', '¹', '≤', '‡', '√', ]
+
+mispell_dict = {"aren't" : "are not", "can't" : "cannot", "couldn't" : "could not", "couldnt" : "could not", "didn't" : "did not", "doesn't" : "does not",
+                "doesnt" : "does not", "don't" : "do not", "hadn't" : "had not", "hasn't" : "has not", "haven't" : "have not", "havent" : "have not",
+                "he'd" : "he would", "he'll" : "he will", "he's" : "he is", "i'd" : "I would", "i'd" : "I had", "i'll" : "I will", "i'm" : "I am",
+                "isn't" : "is not","it's" : "it is","it'll":"it will", "i've" : "I have", "let's" : "let us", "mightn't" : "might not", "mustn't" : "must not",
+                "shan't" : "shall not", "she'd" : "she would", "she'll" : "she will", "she's" : "she is", "shouldn't" : "should not", "shouldnt" : "should not",
+                "that's" : "that is", "thats" : "that is", "there's" : "there is", "theres" : "there is", "they'd" : "they would", "they'll" : "they will",
+                "they're" : "they are", "theyre":  "they are", "they've" : "they have", "we'd" : "we would", "we're" : "we are", "weren't" : "were not",
+                "we've" : "we have", "what'll" : "what will", "what're" : "what are", "what's" : "what is", "what've" : "what have", "where's" : "where is",
+                "who'd" : "who would", "who'll" : "who will", "who're" : "who are", "who's" : "who is", "who've" : "who have", "won't" : "will not",
+                "wouldn't" : "would not", "you'd" : "you would", "you'll" : "you will", "you're" : "you are", "you've" : "you have", "'re": " are",
+                "wasn't": "was not", "we'll":" will", "didn't": "did not", "tryin'":"trying"}
+
+def clean_text(x):
+    x = str(x).replace("\n","")
+    for punct in puncts:
+        x = x.replace(punct, f' {punct} ')
+    return x
+
+def clean_numbers(x):
+    x = re.sub('[0-9]{5,}', '#####', x)
+    x = re.sub('[0-9]{4}', '####', x)
+    x = re.sub('[0-9]{3}', '###', x)
+    x = re.sub('[0-9]{2}', '##', x)
+    return x
+
+def _get_mispell(mispell_dict):
+    mispell_re = re.compile('(%s)' % '|'.join(mispell_dict.keys()))
+    return mispell_dict, mispell_re
+
+def replace_typical_misspell(text):
+    mispellings, mispellings_re = _get_mispell(mispell_dict)
+
+    def replace(match):
+        return mispellings[match.group(0)]
+
+    return mispellings_re.sub(replace, text)
+
+def clean_data(df, columns):
+    for col in tqdm(columns):
+        df[col] = df[col].apply(lambda x: re.sub(' +', ' ', x)).values
+        df[col] = df[col].apply(lambda x: re.sub('\n', '', x)).values
+        df[col] = df[col].apply(lambda x: clean_numbers(x)).values
+        df[col] = df[col].apply(lambda x: replace_typical_misspell(x)).values
+        df[col] = df[col].apply(lambda x: clean_text(x.lower())).values
+        df[col] = df[col].apply(lambda x: x.lower()).values
+        df[col] = df[col].apply(lambda x: re.sub(' +', ' ', x)).values
+
+    return df
+from sklearn.preprocessing import MinMaxScaler
+def preprocess_data(train):
+
+  y = train[train.columns[11:]] # storing the target labels in 'y'
+
+  # I'll be cleaning and adding the domain name from the website's url.
+  find = re.compile(r"^[^.]*")
+  train['clean_url'] = train['url'].apply(lambda x: re.findall(find, urlparse(x).netloc)[0])
+
+  # creating train and test data
+  X = train[['question_title', 'question_body', 'answer', 'host', 'category']]
+  text_features = ['question_title', 'question_body', 'answer']
+
+  # Cleaning data for contracted words, numbers and punctuations.
+  X = clean_data(X, text_features)
+
+  return X
+X = pd.read_csv('../input/google-quest-challenge/train.csv').iloc[:, 11:] 
+unique_labels = np.unique(X.values)
+denominator = 60
+q = np.arange(0, 101, 100 / denominator)
+exp_labels = np.percentile(unique_labels, q) # Generating the 60 bins.
+
+def optimize_ranks(preds, unique_labels=exp_labels): 
+  new_preds = np.zeros(preds.shape)
+  for i in range(preds.shape[1]):
+    interpolate_bins = np.digitize(preds[:, i], bins=unique_labels, right=False)-1
+    if len(np.unique(interpolate_bins)) == 1:
+      new_preds[:, i] = preds[:, i]
+    else:
+      # new_preds[:, i] = unique_labels[interpolate_bins]
+      new_preds[:, i] = interpolate_bins
+  
+  return new_preds
+y_true = pd.read_csv('../input/google-quest-challenge/train.csv').iloc[:, 11:]
+y_pred = pd.read_csv('../input/google-quest-qna-bert-pred/pred_train.csv').iloc[:, 1:]
+y_true = optimize_ranks(y_true.values)
+y_pred = optimize_ranks(y_pred.values)
+# Generating the MSE-score for each data point in train data.
+from sklearn.metrics import mean_squared_error
+train_score = [mean_squared_error(i,j) for i,j in zip(y_pred, y_true)]
+# sorting the losses from minimum to maximum imdex wise.
+train_score_args = np.argsort(train_score)
+train = pd.read_csv('../input/google-quest-challenge/train.csv')
+X_train = preprocess_data(train)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #5
+
+ORIGINAL MARKDOWN:
+------------------------------
+## C 1-14
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## C 1-14
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(18,18)})
+corr=df_train[FF[1]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def c_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(7,2,figsize=(18,50))
+
+    for feature in features:
+        i += 1
+        plt.subplot(7,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+c_ff(t0, t1, '0', '1', FF[1])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/sz8416/lb-1-4439-gacr-prediction-eda-lgb-baseline
+
+plot_categorical(data=train, col='channelGrouping', size=[10 ,4], xlabel_angle=30, 
+                 title='Channel Grouping')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #6
+
+ORIGINAL MARKDOWN:
+------------------------------
+## D 1-15
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## D 1-15
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(17,17)})
+corr=df_train[FF[2]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def d_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot') 
+    plt.figure()
+    fig, ax = plt.subplots(5,3,figsize=(18,22))
+    
+    for feature in features:
+        i += 1
+        plt.subplot(5,3,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=13)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+d_ff(t0, t1, '0', '1', FF[2])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mahmudds/alaska2-image-eda-understanding-and-modeling
+
+def show15(title = "Default"):
+    '''Shows n amount of images in the data'''
+    plt.figure(figsize=(16,9))
+    plt.suptitle(title, fontsize = 16)
+    
+    for k, path in enumerate(cover_paths[:15]):
+        cover = mpimg.imread(path)
+        
+        plt.subplot(3, 5, k+1)
+        plt.imshow(cover)
+        plt.axis('off')
+show15(title = "15 Original Images")
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #7
+
+ORIGINAL MARKDOWN:
+------------------------------
+## M 1-9
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## M 1-9
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(12,12)})
+corr=df_train[FF[3]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def m_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(9,1,figsize=(20,42))
+
+    for feature in features:
+        i += 1
+        plt.subplot(9,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+m_ff(t0, t1, '0', '1', FF[3])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rohan9889/kannada-mnist-layers-visualization
+
+plt.matshow(activations[0][9, :, :, 10], cmap='viridis')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #8
+
+ORIGINAL MARKDOWN:
+------------------------------
+## iD 1-38
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## ID 1-38
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[11]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def id_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(19,2,figsize=(30,60))
+
+    for feature in features:
+        i += 1
+        plt.subplot(19,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.ylabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+id_ff(t0, t1, '0', '1', FF[11])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/joshuajhchoi/ieee-cis-fraud-detection-2020
+
+plt.hist(train['id_07']);
+plt.title('Distribution of id_07 variable');
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #9
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Other
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Other 
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(17,17)})
+corr=df_train[FF[12]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def o_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(11,1,figsize=(30,52))
+
+    for feature in features:
+        i += 1
+        plt.subplot(11,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=4)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=4)
+    plt.show();
+
+o_ff(t0, t1, '0', '1', FF[12])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+%matplotlib inline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #10
+
+ORIGINAL MARKDOWN:
+------------------------------
+## C 1-14
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## C 1-14
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(18,18)})
+corr=df_train[FF[1]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True ,annot_kws={"size": 10})
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def c_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(7,2,figsize=(18,50))
+
+    for feature in features:
+        i += 1
+        plt.subplot(7,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+c_ff(t0, t1, '0', '1', FF[1])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/sz8416/lb-1-4439-gacr-prediction-eda-lgb-baseline
+
+plot_categorical(data=train, col='channelGrouping', size=[10 ,4], xlabel_angle=30, 
+                 title='Channel Grouping')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #11
+
+ORIGINAL MARKDOWN:
+------------------------------
+## D 1-15
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## D 1-15
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(19,19)})
+corr=df_train[FF[2]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 9})
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def d_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot') 
+    plt.figure()
+    fig, ax = plt.subplots(5,3,figsize=(18,22))
+    
+    for feature in features:
+        i += 1
+        plt.subplot(5,3,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=13)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=6)
+    plt.show();
+
+d_ff(t0, t1, '0', '1', FF[2])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mahmudds/alaska2-image-eda-understanding-and-modeling
+
+def show15(title = "Default"):
+    '''Shows n amount of images in the data'''
+    plt.figure(figsize=(16,9))
+    plt.suptitle(title, fontsize = 16)
+    
+    for k, path in enumerate(cover_paths[:15]):
+        cover = mpimg.imread(path)
+        
+        plt.subplot(3, 5, k+1)
+        plt.imshow(cover)
+        plt.axis('off')
+show15(title = "15 Original Images")
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #12
+
+ORIGINAL MARKDOWN:
+------------------------------
+## M 1-9
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## M 1-9
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(12,12)})
+corr=df_train[FF[3]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 10})
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def m_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(9,1,figsize=(20,42))
+
+    for feature in features:
+        i += 1
+        plt.subplot(9,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+m_ff(t0, t1, '0', '1', FF[3])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rohan9889/kannada-mnist-layers-visualization
+
+plt.matshow(activations[0][9, :, :, 10], cmap='viridis')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #13
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 1-50
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 1-50
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[4]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size":7 })
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[4]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mcarujo/mercari-ead-and-regression
+
+list_top_50_brand = train.brand_name.value_counts()[:51].index
+list_top_50_brand
+brands_column = []
+for i, brand in enumerate(train.brand_name):
+    if not brand in list_top_50_brand:
+        brands_column.append("other brand")
+    else:
+        brands_column.append(brand)
+brands_column[:5]
+train.brand_name = brands_column
+plot_value_counts(column.sample(10000), "brand_name", 52)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #14
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 51-100
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 51-100
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[5]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 7})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[5]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/shaz13/zestimate-v1-01
+
+## Caution - Only 50% percentile missing values are taken. There are 29 MORE!!!
+Notorious_null = null[null['Percentage of Values Missing'] > null['Percentage of Values Missing'].mean()]
+Notorious_null.sort_values(by='Percentage of Values Missing', ascending=False).head(10)
+plt.rcParams["figure.figsize"] = (13,10)
+sns.barplot(x= 'Percentage of Values Missing', 
+            y='index', 
+            data= Notorious_null,
+            color = '#ff004f') 
+len(null) - len(Notorious_null)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #15
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 101-150
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 101-150
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[6]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 8})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[6]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/datark1/pubg-detailed-eda-top-10-players-and-xgb-model
+
+top10 = train[train["winPlacePerc"]>0.9]
+print("TOP 10% overview\n")
+print("Average number of kills: {:.1f}\nMinimum: {}\nThe best: {}\n95% of players within: {} kills." 
+      .format(top10["kills"].mean(), top10["kills"].min(), top10["kills"].max(),top10["kills"].quantile(0.95)))
+plt.figure(figsize=(15,8))
+ax3 = sns.boxplot(x="DBNOs",y="kills", data = top10)
+ax3.set_title("NUmber of DBNOs vs. Number of Kills")
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #16
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 151-200
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 151-200
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[7]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 6})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[7]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rajeshcv/understanding-features
+
+sns.set(rc={'figure.figsize':(20,8)})
+setpositive20=train.loc[:,colzerototwenty].boxplot(rot=90)
+setpositive20=setpositive20.set(yticks=[0,5,10,15,20],title="Features with  positive values and maximum value between 10 & 20")
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #17
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 201-250
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 201-250
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[8]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 6})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[8]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/samusram/film-industry-curiosities-box-office-prediction
+
+low_budget_value_counts = data.loc[data['budget'] <= 174, 'budget'].map(int).value_counts().sort_index()
+series_cum_sum_percentages_low_budget = low_budget_value_counts.cumsum()/low_budget_value_counts.sum()
+# let's convert to percentages of total
+low_budget_value_counts = 100*low_budget_value_counts/len(data)
+# let's leave budget categories responsible for 97% of low-budget bin
+low_budget_value_counts = low_budget_value_counts[series_cum_sum_percentages_low_budget < 0.97]
+low_budget_value_counts.plot.bar(figsize=(10, 8))
+plt.xlabel('Budget [$]', fontsize=15)
+plt.ylabel('Percentage of total number of movies [%]', fontsize=15)
+plt.title('Fraction of low-budget movies', fontsize=20)
+%%HTML
+<a id=missing-zeros></a>
+<img src=https://i.imgflip.com/2wazn1.jpg width="250" align="left">
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #18
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 251-300
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 251-300
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[9]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size":6})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[9]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/group16/shapelets
+
+leaf_img = [('Acer Palmatum', [27, 118, 203, 324, 960, 1041]), 
+            ('Acer Pictum', [146, 311, 362, 810, 915, 949, 956]),
+            ('Quercus Coccinea', [163, 189, 469, 510, 576, 605]),
+            ('Quercus Rhysophylla', [375, 481, 876, 1120, 1163, 1323]),
+            ('Salix Fragilis', [15, 620, 704, 847, 976, 1025])]
+leaf_map = {'Acer Palmatum': 0, 'Acer Pictum': 1, 'Salix Fragilis': 2,
+            'Quercus Rhysophylla': 3, 'Quercus Coccinea': 4}
+data = []
+
+for img in leaf_img:
+    name, image_numbers = img[0], img[1]
+    for number in image_numbers:
+        data.append((convert_to_1d('../input/images/'+str(number)+'.jpg', plot=0), 
+                     leaf_map[name]))
+        
+convert_to_1d('../input/images/27.jpg', plot=True)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #19
+
+ORIGINAL MARKDOWN:
+------------------------------
+## V 301-339
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## V 301-339
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[10]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True, annot_kws={"size": 6})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(40,40)})
+corr=df_train[FF[10]+['isFraud']].corr()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,cmap="YlGnBu")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/virajbagal/ieee-eda-dropping-cols-and-xgb-with-earlystopping
+
+get_subplots('V339','V338')
+detailed_subplot('V328')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #20
+
+ORIGINAL MARKDOWN:
+------------------------------
+## iD 1-38
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## ID 1-38
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(50,50)})
+corr=df_train[FF[11]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,annot_kws={"size": 10})
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def id_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(19,2,figsize=(30,60))
+
+    for feature in features:
+        i += 1
+        plt.subplot(19,2,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.ylabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=6)
+        plt.tick_params(axis='y', which='major', labelsize=12, pad=6)
+    plt.show();
+
+id_ff(t0, t1, '0', '1', FF[11])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/joshuajhchoi/ieee-cis-fraud-detection-2020
+
+plt.hist(train['id_07']);
+plt.title('Distribution of id_07 variable');
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #21
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Other
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Other 
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+sns.set(rc={'figure.figsize':(17,17)})
+corr=df_train[FF[12]+['isFraud']].cov()
+plt.figure() 
+ax = sns.heatmap(corr,linewidths=.5, annot=True,annot_kws={"size": 10})
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vaishvik25/ieee-exploratory-data-analysis
+
+def o_ff(df1, df2, label1, label2, features):
+    i = 0
+    style.use('ggplot')
+    plt.figure()
+    fig, ax = plt.subplots(11,1,figsize=(30,52))
+
+    for feature in features:
+        i += 1
+        plt.subplot(11,1,i)
+        sns.distplot(df1[feature], hist=False,label=label1)
+        sns.distplot(df2[feature], hist=False,label=label2)
+        plt.xlabel(feature, fontsize=12)
+        locs, labels = plt.xticks()
+        plt.tick_params(axis='x', which='major', labelsize=12, pad=4)
+        plt.tick_params(axis='y', which='major', labelsize=12,pad=4)
+    plt.show();
+
+o_ff(t0, t1, '0', '1', FF[12])            
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+%matplotlib inline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #22
+
+ORIGINAL MARKDOWN:
+------------------------------
+## listing ID
+Theoretically ID variable is not supposed to be included in training a model. However, for some reason listing_id appears to be correlated to the created date time and therefore might be a good candidate as a feature:
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## listing ID
+Theoretically ID variable is not supposed to be included in training a model. However, for some reason listing_id appears to be correlated to the created date time and therefore might be a good candidate as a feature:
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/chriscc/twosigma-model-tuning
+
+sns.jointplot('listing_id', 'created_epoch', full_data)
+min_listing_id = full_data['listing_id'].min()
+max_listing_id = full_data['listing_id'].max()
+full_data['norm_listing_id']=full_data['listing_id'].apply(lambda x:np.float64((x-min_listing_id+1))/(max_listing_id-min_listing_id+1))
+listing_vars = [ 'norm_listing_id']
+full_num_vars = num_vars + date_num_vars + additional_num_vars + interactive_num_vars+ geo_cat_vars +geo_num_vars + count_vars \
+     + listing_vars
+full_cat_vars = LE_vars + mean_coded_vars
+full_vars = full_num_vars + full_cat_vars
+train_x = sparse.hstack([full_data[full_vars], 
+                         feature_sparse, 
+                         desc_sparse, 
+                         st_addr_sparse]).tocsr()[:train_size]
+train_y = full_data['target'][:train_size].values
+test_x = sparse.hstack([full_data[full_vars], 
+                        feature_sparse, 
+                        desc_sparse, 
+                        st_addr_sparse]).tocsr()[train_size:]
+test_y = full_data['target'][train_size:].values
+
+
+full_vars = full_vars + feature_vars + desc_vars + st_addr_vars    
+print ("training data size: ", train_x.shape,"testing data size: ", test_x.shape)
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.1
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.05
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/chriscc/twosigmarenthop-advanced-feature-engineering
+
+sns.jointplot('listing_id', 'created_epoch', full_data)
+min_listing_id = full_data['listing_id'].min()
+max_listing_id = full_data['listing_id'].max()
+full_data['norm_listing_id']=full_data['listing_id'].apply(lambda x:np.float64((x-min_listing_id+1))/(max_listing_id-min_listing_id+1))
+listing_vars = [ 'norm_listing_id']
+full_num_vars = num_vars + date_num_vars + additional_num_vars + interactive_num_vars+ geo_cat_vars +geo_num_vars + count_vars \
+     + listing_vars
+full_cat_vars = LE_vars + mean_coded_vars
+full_vars = full_num_vars + full_cat_vars
+train_x = sparse.hstack([full_data[full_vars], 
+                         feature_sparse, 
+                         desc_sparse, 
+                         st_addr_sparse]).tocsr()[:train_size]
+train_y = full_data['target'][:train_size].values
+test_x = sparse.hstack([full_data[full_vars], 
+                        feature_sparse, 
+                        desc_sparse, 
+                        st_addr_sparse]).tocsr()[train_size:]
+test_y = full_data['target'][train_size:].values
+
+
+full_vars = full_vars + feature_vars + desc_vars + st_addr_vars    
+print ("training data size: ", train_x.shape,"testing data size: ", test_x.shape)
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.1
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+
+%%time
+lgb_params = dict()
+lgb_params['objective'] = 'multiclass'
+lgb_params['num_class'] = 3
+lgb_params['learning_rate'] = 0.05
+lgb_params['num_leaves'] = 63
+lgb_params['max_depth'] = 15
+lgb_params['min_gain_to_split '] = 1
+lgb_params['subsample'] = 0.7
+lgb_params['colsample_bytree'] = 0.7
+lgb_params['min_sum_hessian_in_leaf'] = 0.001
+lgb_params['seed']=42
+
+lgb_cv = lgb.cv(lgb_params,
+                lgb.Dataset(train_x,
+                            label=train_y
+                            ),
+                num_boost_round=100000,
+                nfold=5,
+                stratified=True,
+                shuffle=True,
+                early_stopping_rounds=50,
+                seed=42,
+                verbose_eval=50)
+
+
+best_score = min(lgb_cv['multi_logloss-mean'])
+best_iteration = len(lgb_cv['multi_logloss-mean'])
+print ('Best iteration: %d, best score: %f' % (best_iteration, best_score))
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/shawon10/covid-19-forecasting-by-random-regressor-hptuning
+
+plt.plot(y , color = 'blue' , label = 'Covid 19 Prediction')
+plt.title('Covid 19 Week 5')
+plt.xlabel('Features')
+plt.ylabel('Confirmed Cases')
+plt.legend()
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #23
+
+ORIGINAL MARKDOWN:
+------------------------------
+### Card
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**Card 6**
+
+It is about whether the is Debit or Credit Card
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hassanamin/fraud-complete-eda
+
+cards = ['card1', 'card2', 'card3', 'card4', 'card5', 'card6']
+for i in cards:
+    print ("Unique ",i, " = ",train_transaction[i].nunique())
+fig, ax = plt.subplots(1, 4, figsize=(25,5))
+
+sns.countplot(x="card4", ax=ax[0], data=train_transaction.loc[train_transaction['isFraud'] == 0])
+ax[0].set_title('card4 isFraud=0', fontsize=14)
+sns.countplot(x="card4", ax=ax[1], data=train_transaction.loc[train_transaction['isFraud'] == 1])
+ax[1].set_title('card4 isFraud=1', fontsize=14)
+sns.countplot(x="card6", ax=ax[2], data=train_transaction.loc[train_transaction['isFraud'] == 0])
+ax[2].set_title('card6 isFraud=0', fontsize=14)
+sns.countplot(x="card6", ax=ax[3], data=train_transaction.loc[train_transaction['isFraud'] == 1])
+ax[3].set_title('card6 isFraud=1', fontsize=14)
+plt.show()
+cards = train_transaction.iloc[:,4:7].columns
+
+plt.figure(figsize=(18,8*4))
+gs = gridspec.GridSpec(8, 4)
+for i, cn in enumerate(cards):
+    ax = plt.subplot(gs[i])
+    sns.distplot(train_transaction.loc[train_transaction['isFraud'] == 1][cn], bins=50)
+    sns.distplot(train_transaction.loc[train_transaction['isFraud'] == 0][cn], bins=50)
+    ax.set_xlabel('')
+    ax.set_title('feature: ' + str(cn))
+plt.show()
+
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/pradeepmuniasamy/extensive-eda-fe-models-ieee-fraud-detection
+
+sns.catplot(x="card6", y="TransactionAmt", hue="isFraud", data=train)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rajeshcv/feature-engineering-on-multiple-reference-dates
+
+Nozeromonthlagrefdate.loc[~Nozeromonthlagrefdate.card_id.isin(new.card_id),'reference_date'].value_counts().plot(kind='bar')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #24
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Code
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# The dataset <a id="1"></a>
+
+The dataset consists of five .csv files.
+
+* <code>calendar.csv</code> - Contains the dates on which products are sold. The dates are in a <code>yyyy/dd/mm</code> format.
+
+* <code>sales_train_validation.csv</code> - Contains the historical daily unit sales data per product and store <code>[d_1 - d_1913]</code>.
+
+* <code>submission.csv</code> - Demonstrates the correct format for submission to the competition.
+
+* <code>sell_prices.csv</code> - Contains information about the price of the products sold per store and date.
+
+* <code>sales_train_evaluation.csv</code> - Available one month before the competition deadline. It will include sales for <code>[d_1 - d_1941]</code>.
+
+In this competition, we need to forecast the sales for <code>[d_1942 - d_1969]</code>. These rows form the evaluation set. The rows <code>[d_1914 - d_1941]</code> form the validation set, and the remaining rows form the training set. Now, since we understand the dataset and know what to predict, let us visualize the dataset.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/koza4ukdmitrij/how-to-choose-the-best-solution
+
+def plot_solution(n_cv, n_test, sigma, ax):
+    ## hyperparameters
+    n_pub, n_priv = 0.15 * n_test, 0.85 * n_test
+
+    ## prior losses
+    l0_CV_samples = np.random.normal(loc=L0, scale=SIGMA0, size=int(n_cv))
+    l0_pub_samples = np.random.normal(loc=L0, scale=SIGMA0, size=int(n_pub))
+    l0_priv_samples = np.random.normal(loc=L0, scale=SIGMA0, size=int(n_priv))
+
+    ## mean losess 
+    l0_CV = l0_CV_samples.mean()
+    l0_pub = l0_pub_samples.mean()
+    l0_priv = l0_priv_samples.mean()
+    
+    ## distributions
+    l_CV_samples = np.random.normal(loc=l0_CV, scale=EPS, size=5)
+    l_pub_samples = np.random.normal(loc=l0_pub, scale=sigma, size=5)
+    l_priv_samples = np.random.normal(loc=l0_priv, scale=sigma, size=5)
+    
+    ## ## distributions distributions & samples
+    x = np.linspace(L0 - 1*SIGMA0, L0 + 1*SIGMA0, 100)
+
+    ax.plot(x, stats.norm.pdf(x, l0_CV, EPS), label="CV")
+    _ = ax.scatter(l_CV_samples, 0.2 * np.random.rand(5), marker='x')
+
+    ax.plot(x, stats.norm.pdf(x, l0_pub, sigma), label="public")
+    _ = ax.scatter(l_pub_samples, 0.2 * np.random.rand(5), marker='x')
+
+    ax.plot(x, stats.norm.pdf(x, l0_priv, sigma), label="private")
+    _ = ax.scatter(l_priv_samples, 0.2 * np.random.rand(5), marker='x')
+
+    _ = ax.legend()
+    
+def plot_solutions(n_cv, n_test, sigma):
+    # repeat plot_solution
+    nrows, ncols = 3, 2
+    fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(16, 12))
+
+    for i in range(nrows):
+        for j in range(ncols):
+            plot_solution(n_cv=n_cv, n_test=n_test, sigma=sigma, ax=ax[i][j])
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mahmudds/m5-forecasting-accuracy-analysis-models
+
+import os
+import gc
+import time
+import math
+import datetime
+from math import log, floor
+from sklearn.neighbors import KDTree
+
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from sklearn.utils import shuffle
+from tqdm.notebook import tqdm as tqdm
+
+import seaborn as sns
+from matplotlib import colors
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
+from plotly.subplots import make_subplots
+
+import pywt
+from statsmodels.robust import mad
+
+import scipy
+import statsmodels
+from scipy import signal
+import statsmodels.api as sm
+from fbprophet import Prophet
+from scipy.signal import butter, deconvolve
+from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
+
+import warnings
+warnings.filterwarnings("ignore")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+%matplotlib inline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #25
+
+ORIGINAL MARKDOWN:
+------------------------------
+There are a lot of options available in ImageDataGenerator and we have just utilized a few of them. Feel free to check out the documentation to get a more detailed perspective. In our training data generator, we take in the raw images and then perform several transformations on them to generate new images. These include the following.
+
+    Zooming the image randomly by a factor of 0.3 using the zoom_range parameter.
+
+    Rotating the image randomly by 50 degrees using the rotation_range parameter.
+
+    Translating the image randomly horizontally or vertically by a 0.2 factor of the image’s width 
+    or height using the width_shift_range and the height_shift_range parameters.
+
+    Applying shear-based transformations randomly using the shear_range parameter.
+
+    Randomly flipping half of the images horizontally using the horizontal_flip parameter.
+
+    Leveraging the fill_mode parameter to fill in new pixels for images after we apply any of the preceding operations 
+    (especially rotation or translation). In this case, we just fill in the new pixels with their nearest surrounding pixel values.
+
+Let’s see how some of these generated images might look so that you can understand them better. We will take two sample images from our training dataset to illustrate the same. The first image is an image of a cat.
+
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+There are a lot of options available in ImageDataGenerator and we have just utilized a few of them. Feel free to check out the documentation to get a more detailed perspective. 
+
+In our training data generator, we take in the raw images and then perform several transformations on them to generate new images. 
+
+These include the following:
+
+`Zooming` the image randomly by a factor of 0.3 using the zoom_range parameter.
+
+`Rotating` the image randomly by 50 degrees using the rotation_range parameter.
+
+`Translating` the image randomly horizontally or vertically by a 0.2 factor of the image’s width or height using the width_shift_range and the height_shift_range parameters.
+
+Applying `shear-based transformations` randomly using the shear_range parameter.
+
+Randomly `flipping` half of the images horizontally using the horizontal_flip parameter.
+
+Leveraging the `fill_mode` parameter to fill in new pixels for images after we apply any of the preceding operations (especially rotation or translation). In this case, we just fill in the new pixels with their nearest surrounding pixel values.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/jagdmir/siim-melanoma-classification-modelling
+
+img_id = 100
+generator_100 = train_datagen.flow(train_imgs[img_id:img_id+1], train.target[img_id:img_id+1],
+                                   batch_size=1)
+aug_img = [next(generator_100) for i in range(0,5)]
+fig, ax = plt.subplots(1,5, figsize=(16, 6))
+print('Labels:', [item[1][0] for item in aug_img])
+l = [ax[i].imshow(aug_img[i][0][0]) for i in range(0,5)]
+import gc
+del train
+gc.collect()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/jagdmir/all-you-need-to-know-about-cnns
+
+# lets take a random image and see how transformated images actually looks
+img_id = 1
+
+img_generator = train_datagen.flow(train_imgs[img_id:img_id+1], train_labels[img_id:img_id+1],
+                                   batch_size=1)
+
+img = [next(img_generator) for i in range(0,5)]
+
+fig, ax = plt.subplots(1,5, figsize=(16, 6))
+print('Labels:', [item[1][0] for item in img])
+l = [ax[i].imshow(img[i][0][0]) for i in range(0,5)]
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/josutk/textures-in-steel-surface
+
+train_df = pd.read_csv("../input/severstal-steel-defect-detection/train.csv")
+
+train_df.head()
+import numpy as np
+import warnings
+
+def anisodiff(img,niter=1,kappa=50,gamma=0.1,step=(1.,1.),option=1,ploton=False):
+    """
+    Anisotropic diffusion.
+    Usage:
+    imgout = anisodiff(im, niter, kappa, gamma, option)
+    Arguments:
+            img    - input image
+            niter  - number of iterations
+            kappa  - conduction coefficient 20-100 ?
+            gamma  - max value of .25 for stability
+            step   - tuple, the distance between adjacent pixels in (y,x)
+            option - 1 Perona Malik diffusion equation No 1
+                     2 Perona Malik diffusion equation No 2
+            ploton - if True, the image will be plotted on every iteration
+    Returns:
+            imgout   - diffused image.
+    kappa controls conduction as a function of gradient.  If kappa is low
+    small intensity gradients are able to block conduction and hence diffusion
+    across step edges.  A large value reduces the influence of intensity
+    gradients on conduction.
+    gamma controls speed of diffusion (you usually want it at a maximum of
+    0.25)
+    step is used to scale the gradients in case the spacing between adjacent
+    pixels differs in the x and y axes
+    Diffusion equation 1 favours high contrast edges over low contrast ones.
+    Diffusion equation 2 favours wide regions over smaller ones.
+    Reference:
+    P. Perona and J. Malik.
+    Scale-space and edge detection using ansotropic diffusion.
+    IEEE Transactions on Pattern Analysis and Machine Intelligence,
+    12(7):629-639, July 1990.
+    Original MATLAB code by Peter Kovesi
+    School of Computer Science & Software Engineering
+    The University of Western Australia
+    pk @ csse uwa edu au
+    <http://www.csse.uwa.edu.au>
+    Translated to Python and optimised by Alistair Muldal
+    Department of Pharmacology
+    University of Oxford
+    <alistair.muldal@pharm.ox.ac.uk>
+    June 2000  original version.
+    March 2002 corrected diffusion eqn No 2.
+    July 2012 translated to Python
+    April 2019 - Corrected for Python 3.7 - AvW 
+    """
+
+    # ...you could always diffuse each color channel independently if you
+    # really want
+    if img.ndim == 3:
+        warnings.warn("Only grayscale images allowed, converting to 2D matrix")
+        img = img.mean(2)
+
+    # initialize output array
+    img = img.astype('float32')
+    imgout = img.copy()
+
+    # initialize some internal variables
+    deltaS = np.zeros_like(imgout)
+    deltaE = deltaS.copy()
+    NS = deltaS.copy()
+    EW = deltaS.copy()
+    gS = np.ones_like(imgout)
+    gE = gS.copy()
+
+    # create the plot figure, if requested
+    if ploton:
+        import pylab as pl
+        from time import sleep
+
+        fig = pl.figure(figsize=(20,5.5),num="Anisotropic diffusion")
+        ax1,ax2 = fig.add_subplot(1,2,1),fig.add_subplot(1,2,2)
+
+        ax1.imshow(img,interpolation='nearest')
+        ih = ax2.imshow(imgout,interpolation='nearest',animated=True)
+        ax1.set_title("Original image")
+        ax2.set_title("Iteration 0")
+
+        fig.canvas.draw()
+
+    for ii in range(niter):
+
+        # calculate the diffs
+        deltaS[:-1,: ] = np.diff(imgout,axis=0)
+        deltaE[: ,:-1] = np.diff(imgout,axis=1)
+
+        # conduction gradients (only need to compute one per dim!)
+        if option == 1:
+            gS = np.exp(-(deltaS/kappa)**2.)/step[0]
+            gE = np.exp(-(deltaE/kappa)**2.)/step[1]
+        elif option == 2:
+            gS = 1./(1.+(deltaS/kappa)**2.)/step[0]
+            gE = 1./(1.+(deltaE/kappa)**2.)/step[1]
+
+        # update matrices
+        E = gE*deltaE
+        S = gS*deltaS
+
+        # subtract a copy that has been shifted 'North/West' by one
+        # pixel. don't as questions. just do it. trust me.
+        NS[:] = S
+        EW[:] = E
+        NS[1:,:] -= S[:-1,:]
+        EW[:,1:] -= E[:,:-1]
+
+        # update the image
+        imgout += gamma*(NS+EW)
+
+        if ploton:
+            iterstring = "Iteration %i" %(ii+1)
+            ih.set_data(imgout)
+            ax2.set_title(iterstring)
+            fig.canvas.draw()
+            # sleep(0.01)
+
+    return imgout
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #26
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Evaluate model
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Evaluate
+
+To evaluate the model, let's begin with a simple loss curve.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/kalashnimov/keras-callbacks-with-91-acc
+
+def plot_model(history): 
+    fig, axs = plt.subplots(1,2,figsize=(16,5)) 
+    # summarize history for accuracy
+    axs[0].plot(history.history['accuracy'], 'c') 
+    axs[0].plot(history.history['val_accuracy'],'m') 
+    axs[0].set_title('Model Accuracy')
+    axs[0].set_ylabel('Accuracy') 
+    axs[0].set_xlabel('Epoch')
+    axs[0].legend(['train', 'validate'], loc='upper left')
+    # summarize history for loss
+    axs[1].plot(history.history['loss'], 'c') 
+    axs[1].plot(history.history['val_loss'], 'm') 
+    axs[1].set_title('Model Loss')
+    axs[1].set_ylabel('Loss') 
+    axs[1].set_xlabel('Epoch')
+    axs[1].legend(['train', 'validate'], loc='upper right')
+    plt.show()
+plot_model(model.history)
+saved_model = load_model('cnn_best_model.h5')
+test_loss, test_acc = saved_model.evaluate(X_test, y_test_cat, verbose=0)
+print('Test Accuracy:', round(test_acc, 2))
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mattbast/google-landmark-retrieval-triplet-loss
+
+plt.title('Model loss')
+plt.plot(history.history['loss'])
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/zusmani/tutorial-covid19-global-forecast
+
+#Modeling with Extra Features Prediction
+
+import xgboost as xgb 
+from xgboost import plot_importance, plot_tree 
+
+model= xgb.XGBRegressor(n_estimators=1000)
+#Training for cases
+
+model.fit(X,E1) 
+ep1 = model.predict(X_test)
+
+# Training for deaths
+model.fit(X,E2) 
+ep2 = model.predict(X_test)
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #27
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Helper Functions
+## Visualization
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Helper Functions
+## Visualization
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mmmarchetti/flowers-on-tpu-ii
+
+def display_confusion_matrix(cmat, score, precision, recall):
+    plt.figure(figsize=(15,15))
+    ax = plt.gca()
+    ax.matshow(cmat, cmap='Reds')
+    ax.set_xticks(range(len(CLASSES)))
+    ax.set_xticklabels(CLASSES, fontdict={'fontsize': 7})
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="left", rotation_mode="anchor")
+    ax.set_yticks(range(len(CLASSES)))
+    ax.set_yticklabels(CLASSES, fontdict={'fontsize': 7})
+    plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    titlestring = ""
+    if score is not None:
+        titlestring += 'f1 = {:.3f} '.format(score)
+    if precision is not None:
+        titlestring += '\nprecision = {:.3f} '.format(precision)
+    if recall is not None:
+        titlestring += '\nrecall = {:.3f} '.format(recall)
+    if len(titlestring) > 0:
+        ax.text(101, 1, titlestring, fontdict={'fontsize': 18, 'horizontalalignment':'right', 'verticalalignment':'top', 'color':'#804040'})
+    plt.show()
+    
+def display_training_curves(training, validation, title, subplot):
+    if subplot%10==1: # set up the subplots on the first call
+        plt.subplots(figsize=(10,10), facecolor='#F0F0F0')
+        plt.tight_layout()
+    ax = plt.subplot(subplot)
+    ax.set_facecolor('#F8F8F8')
+    ax.plot(training)
+    ax.plot(validation)
+    ax.set_title('model '+ title)
+    ax.set_ylabel(title)
+    #ax.set_ylim(0.28,1.05)
+    ax.set_xlabel('epoch')
+    ax.legend(['train', 'valid.'])
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/anyexiezouqu/tpu-enet-b7-xception-densnet201
+
+def display_confusion_matrix(cmat, score, precision, recall):
+    plt.figure(figsize=(15,15))
+    ax = plt.gca()
+    ax.matshow(cmat, cmap='Reds')
+    ax.set_xticks(range(len(CLASSES)))
+    ax.set_xticklabels(CLASSES, fontdict={'fontsize': 7})
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="left", rotation_mode="anchor")
+    ax.set_yticks(range(len(CLASSES)))
+    ax.set_yticklabels(CLASSES, fontdict={'fontsize': 7})
+    plt.setp(ax.get_yticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+    titlestring = ""
+    if score is not None:
+        titlestring += 'f1 = {:.3f} '.format(score)
+    if precision is not None:
+        titlestring += '\nprecision = {:.3f} '.format(precision)
+    if recall is not None:
+        titlestring += '\nrecall = {:.3f} '.format(recall)
+    if len(titlestring) > 0:
+        ax.text(101, 1, titlestring, fontdict={'fontsize': 18, 'horizontalalignment':'right', 'verticalalignment':'top', 'color':'#804040'})
+    plt.show()
+    
+def display_training_curves(training, validation, title, subplot):
+    if subplot%10==1: # set up the subplots on the first call
+        plt.subplots(figsize=(10,10), facecolor='#F0F0F0')
+        plt.tight_layout()
+    ax = plt.subplot(subplot)
+    ax.set_facecolor('#F8F8F8')
+    ax.plot(training)
+    ax.plot(validation)
+    ax.set_title('model '+ title)
+    ax.set_ylabel(title)
+    #ax.set_ylim(0.28,1.05)
+    ax.set_xlabel('epoch')
+    ax.legend(['train', 'valid.'])
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/loaiabdalslam/vgg16-layers-visualization-tutorial
+
+
+# summarize filters in each convolutional layer
+from keras.applications.vgg16 import VGG16
+from matplotlib import pyplot
+# load the model
+model = VGG16()
+# summarize filter shapes
+for layer in model.layers:
+	# check for convolutional layer
+	if 'conv' not in layer.name:
+		continue
+	# get filter weights
+	filters, biases = layer.get_weights()
+	print(layer.name, filters.shape)
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #28
+
+ORIGINAL MARKDOWN:
+------------------------------
+First let's check the train test split. It helps to decide our validation strategy and gives ideas about feature engineering.
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Validation Strategy
+First let's check the train test split. It helps to decide our validation strategy and gives ideas about feature engineering.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/mubashir44/nyc-taxi-eda
+
+#from pandas.plotting import parallel_coordinates
+#dct = {'training': train.groupby('pickup_date').count()[['id']], 
+#       'testing': train.groupby('pickup_date').count()[['id']] }
+
+#df = pd.DataFrame.from_dict(dct)
+
+#parallel_coordinates(df, 'training')
+
+#df = pd.DataFrame( {train.groupby('pickup_date').count()[['id']] columns=['a', 'b', 'c', 'd']})
+
+#df.plot.area();
+#fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+
+plt.plot((train.groupby('pickup_date').count()[['id']]), label='train', color = 'g')
+plt.plot((test.groupby('pickup_date').count()[['id']]), label='train', color = 'r')
+
+plt.title('Train and test period complete overlap.')
+plt.legend(loc=0)
+plt.ylabel('number of records')
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/zusmani/from-eda-to-the-top-lb-0-367
+
+plt.plot(train.groupby('pickup_date').count()[['id']], 'o-', label='train')
+plt.plot(test.groupby('pickup_date').count()[['id']], 'o-', label='test')
+plt.title('Train and test period complete overlap.')
+plt.legend(loc=0)
+plt.ylabel('number of records')
+plt.show()
+city_long_border = (-74.03, -73.75)
+city_lat_border = (40.63, 40.85)
+fig, ax = plt.subplots(ncols=2, sharex=True, sharey=True)
+ax[0].scatter(train['pickup_longitude'].values[:N], train['pickup_latitude'].values[:N],
+              color='blue', s=1, label='train', alpha=0.1)
+ax[1].scatter(test['pickup_longitude'].values[:N], test['pickup_latitude'].values[:N],
+              color='green', s=1, label='test', alpha=0.1)
+fig.suptitle('Train and test area complete overlap.')
+ax[0].legend(loc=0)
+ax[0].set_ylabel('latitude')
+ax[0].set_xlabel('longitude')
+ax[1].set_xlabel('longitude')
+ax[1].legend(loc=0)
+plt.ylim(city_lat_border)
+plt.xlim(city_long_border)
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/alvations/basic-nlp-with-nltk
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split 
+
+# It doesn't really matter what the function name is called
+# but the `train_test_split` is splitting up the data into 
+# 2 parts according to the `test_size` argument you've set.
+
+# When we're splitting up the training data, we're spltting up 
+# into train, valid split. The function name is just a name =)
+train, valid = train_test_split(df_train, test_size=0.2)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #29
+
+ORIGINAL MARKDOWN:
+------------------------------
+### AgeImputing missing values
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Missing Values
+
+Looks like our external data has some missing values, which is expected. Body part missing numbers increased around three times, missing ages increased about four times and gender missing rates didn't change much but small increase... [2020 values here](https://www.kaggle.com/datafan07/analysis-of-melanoma-metadata-and-effnet-ensemble#Missing-Values).
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/priteshshrivastava/melanoma-tabular-data-xgboost
+
+train_df['age_approx'] = train_df['age_approx'].fillna(train_df['age_approx'].mode().values[0])
+test_df['age_approx']  = test_df['age_approx'].fillna(test_df['age_approx'].mode().values[0]) # Test data doesn't have any NaN in age_approx
+plt.figure(figsize = (20,6))
+sns.countplot(x = 'age_approx', hue = 'target', data = train_df)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/akashsuper2000/eda-modelling-of-the-external-data-inc-ensemble
+
+# Checking missing values:
+
+def missing_percentage(df):
+
+    total = df.isnull().sum().sort_values(
+        ascending=False)[df.isnull().sum().sort_values(ascending=False) != 0]
+    percent = (df.isnull().sum().sort_values(ascending=False) / len(df) *
+               100)[(df.isnull().sum().sort_values(ascending=False) / len(df) *
+                     100) != 0]
+    return pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
+
+
+missing_train = missing_percentage(train)
+missing_test = missing_percentage(test)
+
+fig, ax = plt.subplots(1, 2, figsize=(16, 6))
+
+sns.barplot(x=missing_train.index,
+            y='Percent',
+            data=missing_train,
+            palette=black_red,
+            ax=ax[0])
+
+sns.barplot(x=missing_test.index,
+            y='Percent',
+            data=missing_test,
+            palette=black_red,
+            ax=ax[1])
+
+ax[0].set_title('Train Data Missing Values')
+ax[1].set_title('Test Data Missing Values')
+
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/gowrishankarin/interactive-eda-using-plotly
+
+missing_values_df = train_df.isnull().sum(axis=0).reset_index()
+missing_values_df.columns = ["Column_Name", "Missing_Count"]
+missing_values_df = missing_values_df.loc[missing_values_df["Missing_Count"] > 0]
+print(missing_values_df.shape)
+missing_values_df
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #30
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Import Packages
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Import packages
+==============================
+ORIGINAL CODE:
+------------------------------
+%matplotlib inline
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import re
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
+
+plt.rcParams['figure.figsize'] = (16, 9)
+plt.style.use('ggplot')
+
+pd.options.display.max_rows = 16
+pd.options.display.max_columns = 32
+
+os.listdir('../input')
+plain_text = pd.read_csv('../input/train.csv')
+cipher_text = pd.read_csv('../input/test.csv')
+sample_df = pd.read_csv('../input/sample_submission.csv')
+plain_text.head()
+cipher_text.head()
+plain_text.tail()
+cipher_text.tail()
+cipher_text.difficulty.value_counts()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/kalashnimov/keras-callbacks-with-91-acc
+
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from keras.datasets import cifar10
+from keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.layers import Input, Conv2D, Dense, Activation, Flatten, Dropout, MaxPooling2D, BatchNormalization
+from tensorflow.keras.models import Sequential, Model, load_model
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras import regularizers, optimizers
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load in 
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the "../input/" directory.
+# For example, running this (by clicking run or pressing Shift+Enter) will list the files in the input directory
+
+import os
+print(os.listdir("../input"))
+
+# Any results you write to the current directory are saved as output.
+import matplotlib.pyplot as plt
+from PIL import Image
+import seaborn as sns; sns.set_style("white")
+import random
+import cv2
+import time 
+from tqdm import tqdm, tqdm_notebook
+
+
+ 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+

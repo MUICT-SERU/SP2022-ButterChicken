@@ -1,0 +1,2863 @@
+ITEM #1
+
+ORIGINAL MARKDOWN:
+------------------------------
+**Boxplot**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**Boxplot**
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/jsaguiar/complete-eda-time-series-with-plotly
+
+item_sum = df.groupby(['item', 'date'])['sales'].sum()
+traces = []
+
+for i in range(1, 51):
+    s = item_sum[i].to_frame().reset_index()
+    trace = go.Box(y= s.sales, name= 'Item {}'.format(i), jitter=0.8, whiskerwidth=0.2, marker=dict(size=2), line=dict(width=1))
+    traces.append(trace)
+
+layout = go.Layout(
+    title='Sales BoxPlot for each item',
+    yaxis=dict(
+        autorange=True, showgrid=True, zeroline=True,
+        gridcolor='rgb(233,233,233)', zerolinecolor='rgb(255, 255, 255)',
+        zerolinewidth=2, gridwidth=1
+    ),
+    margin=dict(l=40, r=30, b=80, t=100), showlegend=False,
+)
+
+fig = go.Figure(data=traces, layout=layout)
+iplot(fig)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/jsaguiar/complete-eda-time-series-with-plotly
+
+store_sum = df.groupby(['store', 'date'])['sales'].sum()
+traces = []
+
+for i in range(1, 11):
+    s = store_sum[i].to_frame().reset_index()
+    trace = go.Box(y= s.sales, name= 'Store {}'.format(i), jitter=0.8, whiskerwidth=0.2, marker=dict(size=2), line=dict(width=1))
+    traces.append(trace)
+
+layout = go.Layout(
+    title='Sales BoxPlot for each store',
+    yaxis=dict(
+        autorange=True, showgrid=True, zeroline=True,
+        gridcolor='rgb(233,233,233)', zerolinecolor='rgb(255, 255, 255)',
+        zerolinewidth=2, gridwidth=1
+    ),
+    margin=dict(l=40, r=30, b=80, t=100), showlegend=False,
+)
+
+fig = go.Figure(data=traces, layout=layout)
+iplot(fig)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+%matplotlib inline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #2
+
+ORIGINAL MARKDOWN:
+------------------------------
+# See sample image
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Sample Image
+A sample image to see what happens as we apply different techniques
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/bulentsiyah/dogs-vs-cats-classification-vgg16-fine-tuning
+
+sample = random.choice(filenames)
+image = load_img("../input/train/train/"+sample)
+plt.imshow(image)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/kmader/qbi-illumination-correction
+
+np.random.seed(2019)
+xx = np.stack([np.arange(5)]*5, -1)
+yy = xx.T
+bins_sample_8bit = np.linspace(0, 255, 8)
+sample_img = (25*(xx+yy)+np.random.uniform(-10, 10, size=(5, 5))).astype('uint8')
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6,3))
+sns.heatmap(sample_img, annot=True,fmt='02d', ax=ax1, cmap='viridis')
+ax2.hist(sample_img.ravel(), bins_sample_8bit, label='Original', alpha=1)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/gaborfodor/augmentation-methods
+
+def random_saturation(img, limit=(-0.3, 0.3), u=0.5):
+    if np.random.random() < u:
+        alpha = 1.0 + np.random.uniform(limit[0], limit[1])
+        coef = np.array([[[0.114, 0.587, 0.299]]])
+        gray = img * coef
+        gray = np.sum(gray, axis=2, keepdims=True)
+        img = alpha * img + (1. - alpha) * gray
+        img = np.clip(img, 0., 1.)
+    return img
+img_sat = random_saturation(img, u=1)
+plot_img_transformed(img, img_sat)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #3
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Model training
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Training Model
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ryches/turbo-charging-andrew-s-pytorch
+
+runner.train(
+    model=model,
+    criterion=criterion,
+    optimizer=optimizer,
+    scheduler=scheduler,
+    loaders=loaders,
+    callbacks=[DiceCallback(), EarlyStoppingCallback(patience=5, min_delta=0.001)],
+    logdir=logdir,
+    num_epochs=num_epochs,
+    verbose=True
+)
+utils.plot_metrics(
+    logdir=logdir, 
+    # specify which metrics we want to plot
+    metrics=["loss", "dice", 'lr', '_base/lr']
+)
+encoded_pixels = []
+loaders = {"infer": valid_loader}
+runner.infer(
+    model=model,
+    loaders=loaders,
+    callbacks=[
+        CheckpointCallback(
+            resume=f"{logdir}/checkpoints/best.pth"),
+        InferCallback()
+    ],
+)
+valid_masks = []
+probabilities = np.zeros((2220, 350, 525), dtype = np.float32)
+for i, (batch, output) in enumerate(tqdm.tqdm(zip(
+        valid_dataset, runner.callbacks[0].predictions["logits"]))):
+    image, mask = batch
+    for m in mask:
+        if m.shape != (350, 525):
+            m = cv2.resize(m, dsize=(525, 350), interpolation=cv2.INTER_LINEAR)
+        valid_masks.append(m)
+
+    for j, probability in enumerate(output):
+        if probability.shape != (350, 525):
+            probability = cv2.resize(probability, dsize=(525, 350), interpolation=cv2.INTER_LINEAR)
+        probabilities[i * 4 + j, :, :] = probability
+import gc
+torch.cuda.empty_cache()
+gc.collect()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/gogo827jz/deeper-efficientnet-b7
+
+# Need this line so Google will recite some incantations
+# for Turing to magically load the model onto the TPU
+with strategy.scope():
+    enet = efn.EfficientNetB7(
+        input_shape=(512, 512, 3),
+        weights='imagenet',
+        include_top=False
+    )
+    x = enet.output
+    x1 = tf.keras.layers.GlobalMaxPooling2D()(x)
+    x2 = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Concatenate()([x1, x2])
+    x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Dropout(0.5)(x)
+    x = tf.keras.layers.Dense(512, activation='elu')(x)
+    y = tf.keras.layers.Dense(len(CLASSES), activation='softmax')(x)
+    
+    model = tf.keras.Model(inputs=enet.input, outputs=y)
+        
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(lr=0.0001),
+    loss = 'sparse_categorical_crossentropy',
+    metrics=['sparse_categorical_accuracy']
+)
+model.summary()
+tf.keras.utils.plot_model(
+    model,
+    to_file='DeepEfficientNetB7.png',
+    show_shapes=False,
+    show_layer_names=True,
+    rankdir='TB',
+    expand_nested=False,
+    dpi=96
+)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+import numpy as np
+import pandas as pd
+from datetime import datetime
+import matplotlib.pyplot as plt
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, BatchNormalization
+from keras.callbacks import EarlyStopping
+from keras import optimizers
+from keras import regularizers
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #4
+
+ORIGINAL MARKDOWN:
+------------------------------
+### Read and munge the data
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+### Read and munge the data
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/aharless/wls-and-small-xgboost-with-macro-adjustments
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+train = pd.read_csv('../input/train.csv')
+macro = pd.read_csv('../input/macro.csv')
+test = pd.read_csv('../input/test.csv')
+dfa = pd.concat([train, test])  # "dfa" stands for "data frame all"
+# Eliminate spaces and special characters in area names
+dfa.loc[:,"sub_area"] = dfa.sub_area.str.replace(" ","").str.replace("\'","").str.replace("-","")
+dfa = dfa.merge(macro, 
+                on='timestamp', suffixes=['','_macro'])
+dfa["fullzero"] = (dfa.full_sq==0)
+dfa["fulltiny"] = (dfa.full_sq<4)
+dfa["fullhuge"] = (dfa.full_sq>2000)
+dfa["lnfull"] = np.log(dfa.full_sq+1)
+
+dfa["nolife"] = dfa.life_sq.isnull()
+dfa.life_sq = dfa.life_sq.fillna(dfa.life_sq.median())
+dfa["lifezero"] = (dfa.life_sq==0)
+dfa["lifetiny"] = (dfa.life_sq<4)
+dfa["lifehuge"] = (dfa.life_sq>2000)
+dfa["lnlife"] = np.log( dfa.life_sq + 1 )
+
+dfa["nofloor"] = dfa.floor.isnull()
+dfa.floor = dfa.floor.fillna(dfa.floor.median())
+dfa["floor1"] = (dfa.floor==1)
+dfa["floor0"] = (dfa.floor==0)
+dfa["floorhuge"] = (dfa.floor>50)
+dfa["lnfloor"] = np.log(dfa.floor+1)
+
+dfa["nomax"] = dfa.max_floor.isnull()
+dfa.max_floor = dfa.max_floor.fillna(dfa.max_floor.median())
+dfa["max1"] = (dfa.max_floor==1)
+dfa["max0"] = (dfa.max_floor==0)
+dfa["maxhuge"] = (dfa.max_floor>80)
+dfa["lnmax"] = np.log(dfa.max_floor+1)
+
+dfa["norooms"] = dfa.num_room.isnull()
+dfa.num_room = dfa.num_room.fillna(dfa.num_room.median())
+dfa["zerorooms"] = (dfa.num_room==0)
+dfa["lnrooms"] = np.log( dfa.num_room + 1 )
+
+dfa["nokitch"] = dfa.kitch_sq.isnull()
+dfa.kitch_sq = dfa.kitch_sq.fillna(dfa.kitch_sq.median())
+dfa["kitch1"] = (dfa.kitch_sq==1)
+dfa["kitch0"] = (dfa.kitch_sq==0)
+dfa["kitchhuge"] = (dfa.kitch_sq>400)
+dfa["lnkitch"] = np.log(dfa.kitch_sq+1)
+dfa["material0"] = dfa.material.isnull()
+dfa["material1"] = (dfa.material==1)
+dfa["material2"] = (dfa.material==2)
+dfa["material3"] = (dfa.material==3)
+dfa["material4"] = (dfa.material==4)
+dfa["material5"] = (dfa.material==5)
+dfa["material6"] = (dfa.material==6)
+
+# "state" isn't explained but it looks like an ordinal number, so for now keep numeric
+dfa.loc[dfa.state>5,"state"] = np.NaN  # Value 33 seems to be invalid; others all 1-4
+dfa.state = dfa.state.fillna(dfa.state.median())
+
+# product_type gonna be ugly because there are missing values in the test set but not training
+# Check for the same problem with other variables
+dfa["owner_occ"] = (dfa.product_type=='OwnerOccupier')
+dfa.owner_occ.fillna(dfa.owner_occ.mean())
+
+dfa = pd.get_dummies(dfa, columns=['sub_area'], drop_first=True)
+# Build year is ugly
+# Can be missing
+# Can be zero
+# Can be one
+# Can be some ridiculous pre-Medieval number
+# Can be some invalid huge number like 20052009
+# Can be some other invalid huge number like 4965
+# Can be a reasonable number but later than purchase year
+# Can be equal to purchase year
+# Can be a reasonable nubmer before purchase year
+
+dfa.loc[dfa.build_year>2030,"build_year"] = np.NaN
+dfa["nobuild"] = dfa.build_year.isnull()
+dfa["sincebuild"] = pd.to_datetime(dfa.timestamp).dt.year - dfa.build_year
+dfa.sincebuild.fillna(dfa.sincebuild.median(),inplace=True)
+dfa["futurebuild"] = (dfa.sincebuild < 0)
+dfa["newhouse"] = (dfa.sincebuild==0)
+dfa["tooold"] = (dfa.sincebuild>1000)
+dfa["build0"] = (dfa.build_year==0)
+dfa["build1"] = (dfa.build_year==1)
+dfa["untilbuild"] = -dfa.sincebuild.apply(np.min, args=[0]) # How many years until planned build
+dfa["lnsince"] = dfa.sincebuild.mul(dfa.sincebuild>0).add(1).apply(np.log)
+# Interaction terms
+dfa["fullzero_Xowner"] = dfa.fullzero.astype("float64") * dfa.owner_occ
+dfa["fulltiny_Xowner"] = dfa.fulltiny.astype("float64") * dfa.owner_occ
+dfa["fullhuge_Xowner"] = dfa.fullhuge.astype("float64") * dfa.owner_occ
+dfa["lnfull_Xowner"] = dfa.lnfull * dfa.owner_occ
+dfa["nofloor_Xowner"] = dfa.nofloor.astype("float64") * dfa.owner_occ
+dfa["floor0_Xowner"] = dfa.floor0.astype("float64") * dfa.owner_occ
+dfa["floor1_Xowner"] = dfa.floor1.astype("float64") * dfa.owner_occ
+dfa["lnfloor_Xowner"] = dfa.lnfloor * dfa.owner_occ
+dfa["max1_Xowner"] = dfa.max1.astype("float64") * dfa.owner_occ
+dfa["max0_Xowner"] = dfa.max0.astype("float64") * dfa.owner_occ
+dfa["maxhuge_Xowner"] = dfa.maxhuge.astype("float64") * dfa.owner_occ
+dfa["lnmax_Xowner"] = dfa.lnmax * dfa.owner_occ
+dfa["kitch1_Xowner"] = dfa.kitch1.astype("float64") * dfa.owner_occ
+dfa["kitch0_Xowner"] = dfa.kitch0.astype("float64") * dfa.owner_occ
+dfa["kitchhuge_Xowner"] = dfa.kitchhuge.astype("float64") * dfa.owner_occ
+dfa["lnkitch_Xowner"] = dfa.lnkitch * dfa.owner_occ
+dfa["nobuild_Xowner"] = dfa.nobuild.astype("float64") * dfa.owner_occ
+dfa["newhouse_Xowner"] = dfa.newhouse.astype("float64") * dfa.owner_occ
+dfa["tooold_Xowner"] = dfa.tooold.astype("float64") * dfa.owner_occ
+dfa["build0_Xowner"] = dfa.build0.astype("float64") * dfa.owner_occ
+dfa["build1_Xowner"] = dfa.build1.astype("float64") * dfa.owner_occ
+dfa["lnsince_Xowner"] = dfa.lnsince * dfa.owner_occ
+dfa["state_Xowner"] = dfa.state * dfa.owner_occ
+dfa["lnruboil"] = np.log( dfa.oil_urals * dfa.usdrub )
+# Sets of features that go together
+
+# Features derived from full_sq
+fullvars = ["fullzero", "fulltiny",
+           # For now I'm going to drop the one "fullhuge" case. Later use dummy, maybe.
+           #"fullhuge",
+           "lnfull" ]
+
+# Features derived from floor
+floorvars = ["nofloor", "floor1", "floor0",
+             # floorhuge isn't very important, and it's causing problems, so drop it
+             #"floorhuge", 
+             "lnfloor"]
+
+# Features derived from max_floor
+maxvars = ["max1", "max0", "maxhuge", "lnmax"]
+
+# Features derived from kitch_sq
+kitchvars = ["kitch1", "kitch0", "kitchhuge", "lnkitch"]
+
+# Features derived from bulid_year
+buildvars = ["nobuild", "futurebuild", "newhouse", "tooold", 
+             "build0", "build1", "untilbuild", "lnsince"]
+
+# Features (dummy set) derived from material
+matervars = ["material1", "material2",  # material3 is rare, so lumped in with missing 
+             "material4", "material5", "material6"]
+
+# Features derived from interaction of floor and product_type
+floorXvars = ["nofloor_Xowner", "floor1_Xowner", "lnfloor_Xowner"]
+
+# Features derived from interaction of kitch_sq and product_type
+kitchXvars = ["kitch1_Xowner", "kitch0_Xowner", "lnkitch_Xowner"]
+
+# Features (dummy set) derived from sub_area
+subarvars = [
+       'sub_area_Akademicheskoe',
+       'sub_area_Altufevskoe', 'sub_area_Arbat',
+       'sub_area_Babushkinskoe', 'sub_area_Basmannoe', 'sub_area_Begovoe',
+       'sub_area_Beskudnikovskoe', 'sub_area_Bibirevo',
+       'sub_area_BirjulevoVostochnoe', 'sub_area_BirjulevoZapadnoe',
+       'sub_area_Bogorodskoe', 'sub_area_Brateevo', 'sub_area_Butyrskoe',
+       'sub_area_Caricyno', 'sub_area_Cheremushki',
+       'sub_area_ChertanovoCentralnoe', 'sub_area_ChertanovoJuzhnoe',
+       'sub_area_ChertanovoSevernoe', 'sub_area_Danilovskoe',
+       'sub_area_Dmitrovskoe', 'sub_area_Donskoe', 'sub_area_Dorogomilovo',
+       'sub_area_FilevskijPark', 'sub_area_FiliDavydkovo',
+       'sub_area_Gagarinskoe', 'sub_area_Goljanovo',
+       'sub_area_Golovinskoe', 'sub_area_Hamovniki',
+       'sub_area_HoroshevoMnevniki', 'sub_area_Horoshevskoe',
+       'sub_area_Hovrino', 'sub_area_Ivanovskoe', 'sub_area_Izmajlovo',
+       'sub_area_Jakimanka', 'sub_area_Jaroslavskoe', 'sub_area_Jasenevo',
+       'sub_area_JuzhnoeButovo', 'sub_area_JuzhnoeMedvedkovo',
+       'sub_area_JuzhnoeTushino', 'sub_area_Juzhnoportovoe',
+       'sub_area_Kapotnja', 'sub_area_Konkovo', 'sub_area_Koptevo',
+       'sub_area_KosinoUhtomskoe', 'sub_area_Kotlovka',
+       'sub_area_Krasnoselskoe', 'sub_area_Krjukovo',
+       'sub_area_Krylatskoe', 'sub_area_Kuncevo', 
+       'sub_area_Kuzminki', 'sub_area_Lefortovo', 'sub_area_Levoberezhnoe',
+       'sub_area_Lianozovo', 'sub_area_Ljublino', 'sub_area_Lomonosovskoe',
+       'sub_area_Losinoostrovskoe', 'sub_area_Marfino',
+       'sub_area_MarinaRoshha', 'sub_area_Marino', 'sub_area_Matushkino',
+       'sub_area_Meshhanskoe', 'sub_area_Metrogorodok', 'sub_area_Mitino',
+       'sub_area_MoskvorecheSaburovo',
+       'sub_area_Mozhajskoe', 'sub_area_NagatinoSadovniki',
+       'sub_area_NagatinskijZaton', 'sub_area_Nagornoe',
+       'sub_area_Nekrasovka', 'sub_area_Nizhegorodskoe',
+       'sub_area_NovoPeredelkino', 'sub_area_Novogireevo',
+       'sub_area_Novokosino', 'sub_area_Obruchevskoe',
+       'sub_area_OchakovoMatveevskoe', 'sub_area_OrehovoBorisovoJuzhnoe',
+       'sub_area_OrehovoBorisovoSevernoe', 'sub_area_Ostankinskoe',
+       'sub_area_Otradnoe', 'sub_area_Pechatniki', 'sub_area_Perovo',
+       'sub_area_PokrovskoeStreshnevo', 'sub_area_PoselenieDesjonovskoe',
+       'sub_area_PoselenieFilimonkovskoe', 
+       'sub_area_PoselenieKrasnopahorskoe',
+       'sub_area_PoselenieMoskovskij', 'sub_area_PoselenieMosrentgen',
+       'sub_area_PoselenieNovofedorovskoe',
+       'sub_area_PoseleniePervomajskoe', 'sub_area_PoselenieRjazanovskoe',
+       'sub_area_PoselenieRogovskoe', 
+       'sub_area_PoselenieShherbinka', 'sub_area_PoselenieSosenskoe',
+       'sub_area_PoselenieVnukovskoe',  
+       'sub_area_PoselenieVoskresenskoe', 'sub_area_Preobrazhenskoe',
+       'sub_area_Presnenskoe', 'sub_area_ProspektVernadskogo',
+       'sub_area_Ramenki', 'sub_area_Rjazanskij', 'sub_area_Rostokino',
+       'sub_area_Savelki', 'sub_area_Savelovskoe', 'sub_area_Severnoe',
+       'sub_area_SevernoeButovo', 'sub_area_SevernoeIzmajlovo',
+       'sub_area_SevernoeMedvedkovo', 'sub_area_SevernoeTushino',
+       'sub_area_Shhukino', 'sub_area_Silino', 'sub_area_Sokol',
+       'sub_area_SokolinajaGora', 'sub_area_Sokolniki',
+       'sub_area_Solncevo', 'sub_area_StaroeKrjukovo', 'sub_area_Strogino',
+       'sub_area_Sviblovo', 'sub_area_Taganskoe', 'sub_area_Tekstilshhiki',
+       'sub_area_TeplyjStan', 'sub_area_Timirjazevskoe',
+       'sub_area_Troickijokrug', 'sub_area_TroparevoNikulino',
+       'sub_area_Tverskoe', 'sub_area_Veshnjaki', 
+       'sub_area_Vojkovskoe', 
+       'sub_area_VostochnoeDegunino', 'sub_area_VostochnoeIzmajlovo',
+       'sub_area_VyhinoZhulebino', 'sub_area_Zamoskvoreche',
+       'sub_area_ZapadnoeDegunino', 'sub_area_Zjablikovo', 'sub_area_Zjuzino'
+       ]
+
+
+# Lump together small sub_areas
+
+dfa = dfa.assign( sub_area_SmallSW =
+   dfa.sub_area_PoselenieMihajlovoJarcevskoe + 
+   dfa.sub_area_PoselenieKievskij +
+   dfa.sub_area_PoselenieKlenovskoe +
+   dfa.sub_area_PoselenieVoronovskoe +
+   dfa.sub_area_PoselenieShhapovskoe )
+
+dfa = dfa.assign( sub_area_SmallNW =
+   dfa.sub_area_Molzhaninovskoe +
+   dfa.sub_area_Kurkino )
+
+dfa = dfa.assign( sub_area_SmallW =
+   dfa.sub_area_PoselenieMarushkinskoe +
+   dfa.sub_area_Vnukovo +
+   dfa.sub_area_PoselenieKokoshkino )
+
+dfa = dfa.assign( sub_area_SmallN =
+   dfa.sub_area_Vostochnoe +
+   dfa.sub_area_Alekseevskoe )
+
+subarvars += ["sub_area_SmallSW", "sub_area_SmallNW", "sub_area_SmallW", "sub_area_SmallN"]
+                 
+
+
+# For now eliminate case with ridiculous value of full_sq
+dfa = dfa[~dfa.fullhuge]
+
+    
+# Independent features
+
+indievars = ["owner_occ", "state", "state_Xowner"]
+
+
+# Complete list of features to use for fit
+
+allvars = fullvars + floorvars + maxvars + kitchvars + buildvars + matervars
+allvars += floorXvars + kitchXvars + subarvars + indievars
+# The normalized target variable:  log real sale price
+training = dfa[dfa.price_doc.notnull()]
+training.lnrp = training.price_doc.div(training.cpi).apply(np.log)
+y = training.lnrp
+
+# Features to use in heteroskedasticity model if I go back to that
+million1 = (training.price_doc==1e6)
+million2 = (training.price_doc==2e6)
+million3 = (training.price_doc==3e6)
+
+# Create X matrix for fitting
+keep = allvars + ['timestamp']  # Need to keep timestamp to calculate weights
+X = training[keep] 
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/aharless/using-wls-to-create-features-for-xgboost
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+train = pd.read_csv('../input/train.csv')
+macro = pd.read_csv('../input/macro.csv')
+test = pd.read_csv('../input/test.csv')
+dfa = pd.concat([train, test])  # "dfa" stands for "data frame all"
+# Eliminate spaces and special characters in area names
+dfa.loc[:,"sub_area"] = dfa.sub_area.str.replace(" ","").str.replace("\'","").str.replace("-","")
+dfa = dfa.merge(macro, 
+                on='timestamp', suffixes=['','_macro'])
+dfa["fullzero"] = (dfa.full_sq==0)
+dfa["fulltiny"] = (dfa.full_sq<4)
+dfa["fullhuge"] = (dfa.full_sq>2000)
+dfa["lnfull"] = np.log(dfa.full_sq+1)
+
+dfa["nolife"] = dfa.life_sq.isnull()
+dfa.life_sq = dfa.life_sq.fillna(dfa.life_sq.median())
+dfa["lifezero"] = (dfa.life_sq==0)
+dfa["lifetiny"] = (dfa.life_sq<4)
+dfa["lifehuge"] = (dfa.life_sq>2000)
+dfa["lnlife"] = np.log( dfa.life_sq + 1 )
+
+dfa["nofloor"] = dfa.floor.isnull()
+dfa.floor = dfa.floor.fillna(dfa.floor.median())
+dfa["floor1"] = (dfa.floor==1)
+dfa["floor0"] = (dfa.floor==0)
+dfa["floorhuge"] = (dfa.floor>50)
+dfa["lnfloor"] = np.log(dfa.floor+1)
+
+dfa["nomax"] = dfa.max_floor.isnull()
+dfa.max_floor = dfa.max_floor.fillna(dfa.max_floor.median())
+dfa["max1"] = (dfa.max_floor==1)
+dfa["max0"] = (dfa.max_floor==0)
+dfa["maxhuge"] = (dfa.max_floor>80)
+dfa["lnmax"] = np.log(dfa.max_floor+1)
+
+dfa["norooms"] = dfa.num_room.isnull()
+dfa.num_room = dfa.num_room.fillna(dfa.num_room.median())
+dfa["zerorooms"] = (dfa.num_room==0)
+dfa["lnrooms"] = np.log( dfa.num_room + 1 )
+
+dfa["nokitch"] = dfa.kitch_sq.isnull()
+dfa.kitch_sq = dfa.kitch_sq.fillna(dfa.kitch_sq.median())
+dfa["kitch1"] = (dfa.kitch_sq==1)
+dfa["kitch0"] = (dfa.kitch_sq==0)
+dfa["kitchhuge"] = (dfa.kitch_sq>400)
+dfa["lnkitch"] = np.log(dfa.kitch_sq+1)
+dfa["material0"] = dfa.material.isnull()
+dfa["material1"] = (dfa.material==1)
+dfa["material2"] = (dfa.material==2)
+dfa["material3"] = (dfa.material==3)
+dfa["material4"] = (dfa.material==4)
+dfa["material5"] = (dfa.material==5)
+dfa["material6"] = (dfa.material==6)
+
+# "state" isn't explained but it looks like an ordinal number, so for now keep numeric
+dfa.loc[dfa.state>5,"state"] = np.NaN  # Value 33 seems to be invalid; others all 1-4
+dfa.state = dfa.state.fillna(dfa.state.median())
+
+# product_type gonna be ugly because there are missing values in the test set but not training
+# Check for the same problem with other variables
+dfa["owner_occ"] = (dfa.product_type=='OwnerOccupier')
+dfa.owner_occ.fillna(dfa.owner_occ.mean())
+
+dfa = pd.get_dummies(dfa, columns=['sub_area'], drop_first=True)
+# Build year is ugly
+# Can be missing
+# Can be zero
+# Can be one
+# Can be some ridiculous pre-Medieval number
+# Can be some invalid huge number like 20052009
+# Can be some other invalid huge number like 4965
+# Can be a reasonable number but later than purchase year
+# Can be equal to purchase year
+# Can be a reasonable nubmer before purchase year
+
+dfa.loc[dfa.build_year>2030,"build_year"] = np.NaN
+dfa["nobuild"] = dfa.build_year.isnull()
+dfa["sincebuild"] = pd.to_datetime(dfa.timestamp).dt.year - dfa.build_year
+dfa.sincebuild.fillna(dfa.sincebuild.median(),inplace=True)
+dfa["futurebuild"] = (dfa.sincebuild < 0)
+dfa["newhouse"] = (dfa.sincebuild==0)
+dfa["tooold"] = (dfa.sincebuild>1000)
+dfa["build0"] = (dfa.build_year==0)
+dfa["build1"] = (dfa.build_year==1)
+dfa["untilbuild"] = -dfa.sincebuild.apply(np.min, args=[0]) # How many years until planned build
+dfa["lnsince"] = dfa.sincebuild.mul(dfa.sincebuild>0).add(1).apply(np.log)
+# Interaction terms (many not used, ultimately, but I haven't whittled it down yet).
+dfa["fullzero_Xowner"] = dfa.fullzero.astype("float64") * dfa.owner_occ
+dfa["fulltiny_Xowner"] = dfa.fulltiny.astype("float64") * dfa.owner_occ
+dfa["fullhuge_Xowner"] = dfa.fullhuge.astype("float64") * dfa.owner_occ
+dfa["lnfull_Xowner"] = dfa.lnfull * dfa.owner_occ
+dfa["nofloor_Xowner"] = dfa.nofloor.astype("float64") * dfa.owner_occ
+dfa["floor0_Xowner"] = dfa.floor0.astype("float64") * dfa.owner_occ
+dfa["floor1_Xowner"] = dfa.floor1.astype("float64") * dfa.owner_occ
+dfa["lnfloor_Xowner"] = dfa.lnfloor * dfa.owner_occ
+dfa["max1_Xowner"] = dfa.max1.astype("float64") * dfa.owner_occ
+dfa["max0_Xowner"] = dfa.max0.astype("float64") * dfa.owner_occ
+dfa["maxhuge_Xowner"] = dfa.maxhuge.astype("float64") * dfa.owner_occ
+dfa["lnmax_Xowner"] = dfa.lnmax * dfa.owner_occ
+dfa["kitch1_Xowner"] = dfa.kitch1.astype("float64") * dfa.owner_occ
+dfa["kitch0_Xowner"] = dfa.kitch0.astype("float64") * dfa.owner_occ
+dfa["kitchhuge_Xowner"] = dfa.kitchhuge.astype("float64") * dfa.owner_occ
+dfa["lnkitch_Xowner"] = dfa.lnkitch * dfa.owner_occ
+dfa["nobuild_Xowner"] = dfa.nobuild.astype("float64") * dfa.owner_occ
+dfa["newhouse_Xowner"] = dfa.newhouse.astype("float64") * dfa.owner_occ
+dfa["tooold_Xowner"] = dfa.tooold.astype("float64") * dfa.owner_occ
+dfa["build0_Xowner"] = dfa.build0.astype("float64") * dfa.owner_occ
+dfa["build1_Xowner"] = dfa.build1.astype("float64") * dfa.owner_occ
+dfa["lnsince_Xowner"] = dfa.lnsince * dfa.owner_occ
+dfa["state_Xowner"] = dfa.state * dfa.owner_occ
+# Just a tiny bit of feature engineering:  (log) price of oil in rubles
+dfa["lnruboil"] = np.log( dfa.oil_urals * dfa.usdrub )
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+%matplotlib inline
+import numpy as np
+import matplotlib.pyplot as plt
+from skimage.io import imread
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #5
+
+ORIGINAL MARKDOWN:
+------------------------------
+###### Missing values
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## 3.1 Missing Values ❓
+
+Let's first visualize the missing values.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/shahules/who-gets-adopted
+
+plt.figure(figsize=(6,6))
+missing=df.isnull().sum()
+sns.barplot(y=missing.index,x=missing)
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/andradaolteanu/siim-melanoma-competition-eda-augmentations
+
+f, (ax1, ax2) = plt.subplots(1, 2, figsize = (16, 6))
+
+msno.matrix(train_df, ax = ax1, color=(207/255, 196/255, 171/255), fontsize=10)
+msno.matrix(test_df, ax = ax2, color=(218/255, 136/255, 130/255), fontsize=10)
+
+ax1.set_title('Train Missing Values Map', fontsize = 16)
+ax2.set_title('Test Missing Values Map', fontsize = 16);
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/nicapotato/missing-values-explorations
+
+mn.matrix(df.sample(100))
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #6
+
+ORIGINAL MARKDOWN:
+------------------------------
+# time_series_covid_19_recoveredlets see sample data first to make the visual of the predictions better 
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# time_series_covid_19_deaths
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/deepakdeepu8978/covid-19-analysis-eda-forecasting
+
+train_dataset = pd.read_csv('../input/novel-corona-virus-2019-dataset/time_series_covid_19_recovered.csv')
+drop_clo = ['Province/State','Country/Region','Lat','Long']
+train_dataset=train_dataset.drop(drop_clo,axis=1)
+datewise= list(train_dataset.columns)
+val_dataset = train_dataset[datewise[-30:]]
+fig = make_subplots(rows=3, cols=1)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70), mode='lines+markers', y=train_dataset.loc[0].values, marker=dict(color="dodgerblue"), showlegend=False,),
+    row=1, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70, 100), y=val_dataset.loc[0].values, mode='lines+markers', marker=dict(color="darkorange"), showlegend=False,),
+    row=1, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70), mode='lines+markers', y=train_dataset.loc[1].values, marker=dict(color="dodgerblue"), showlegend=False),
+    row=2, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70, 100), y=val_dataset.loc[1].values, mode='lines+markers', marker=dict(color="darkorange"), showlegend=False),
+    row=2, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70), mode='lines+markers', y=train_dataset.loc[2].values, marker=dict(color="dodgerblue"), showlegend=False),
+    row=3, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70, 100), y=val_dataset.loc[2].values, mode='lines+markers', marker=dict(color="darkorange"), showlegend=False),
+    row=3, col=1
+)
+
+fig.update_layout(height=1200, width=800, title_text="Train (blue) vs. Validation (orange) sales")
+fig.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/deepakdeepu8978/covid-19-analysis-eda-forecasting
+
+train_dataset = pd.read_csv('../input/novel-corona-virus-2019-dataset/time_series_covid_19_deaths.csv')
+drop_clo = ['Province/State','Country/Region','Lat','Long']
+train_dataset=train_dataset.drop(drop_clo,axis=1)
+datewise= list(train_dataset.columns)
+val_dataset = train_dataset[datewise[-30:]]
+fig = make_subplots(rows=3, cols=1)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70), mode='lines+markers', y=train_dataset.loc[0].values, marker=dict(color="dodgerblue"), showlegend=False,),
+    row=1, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70, 100), y=val_dataset.loc[0].values, mode='lines+markers', marker=dict(color="darkorange"), showlegend=False,),
+    row=1, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70), mode='lines+markers', y=train_dataset.loc[1].values, marker=dict(color="dodgerblue"), showlegend=False),
+    row=2, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70, 100), y=val_dataset.loc[1].values, mode='lines+markers', marker=dict(color="darkorange"), showlegend=False),
+    row=2, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70), mode='lines+markers', y=train_dataset.loc[2].values, marker=dict(color="dodgerblue"), showlegend=False),
+    row=3, col=1
+)
+
+fig.add_trace(
+    go.Scatter(x=np.arange(70, 100), y=val_dataset.loc[2].values, mode='lines+markers', marker=dict(color="darkorange"), showlegend=False),
+    row=3, col=1
+)
+
+fig.update_layout(height=1200, width=800, title_text="Train (blue) vs. Validation (orange) sales")
+fig.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ishivinal/covid-19-analysis-visualizations-predictions
+
+for i in data.cluster.unique()[:5]:
+    test_df2= data[["Country_Region","Date","ConfirmedCases","cluster"]]
+    test_df2=test_df2[ (test_df2.cluster==i) & (test_df2.Date > "2020-03-02") ]
+    fig = px.line(test_df2, x="Date", y="ConfirmedCases", color='Country_Region')
+    fig.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #7
+
+ORIGINAL MARKDOWN:
+------------------------------
+Let's look at the distribution of Meta-Features
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+Let's look at the distribution of Meta-Features
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/tanulsingh077/twitter-sentiment-extaction-analysis-eda-and-model
+
+hist_data = [train['Num_words_ST'],train['Num_word_text']]
+
+group_labels = ['Selected_Text', 'Text']
+
+# Create distplot with custom bin_size
+fig = ff.create_distplot(hist_data, group_labels,show_curve=False)
+fig.update_layout(title_text='Distribution of Number Of words')
+fig.update_layout(
+    autosize=False,
+    width=900,
+    height=700,
+    paper_bgcolor="LightSteelBlue",
+)
+fig.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/akshat0007/tweet-sentiment-analysis
+
+hist_data = [train['Num_words_ST'],train['Num_word_text']]
+
+group_labels = ['Selected_Text', 'Text']
+
+# Create distplot with custom bin_size
+fig = ff.create_distplot(hist_data, group_labels,show_curve=False)
+fig.update_layout(title_text='Distribution of Number Of words')
+fig.update_layout(
+    autosize=False,
+    width=900,
+    height=700,
+    paper_bgcolor="LightSteelBlue",
+)
+fig.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/codename007/home-credit-complete-eda-feature-importance
+
+plt.figure(figsize=(12,5))
+plt.title("Distribution of AMT_GOODS_PRICE")
+ax = sns.distplot(application_train["AMT_GOODS_PRICE"].dropna())
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #8
+
+ORIGINAL MARKDOWN:
+------------------------------
+* The number of words plot is really interesting ,the tweets having number of words greater than 25 are very less and thus the number of words distribution plot is right skewed
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+* The number of words plot is really interesting ,the tweets having number of words greater than 25 are very less and thus the number of words distribution plot is right skewed
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/tanulsingh077/twitter-sentiment-extaction-analysis-eda-and-model
+
+plt.figure(figsize=(12,6))
+p1=sns.kdeplot(train['Num_words_ST'], shade=True, color="r").set_title('Kernel Distribution of Number Of words')
+p1=sns.kdeplot(train['Num_word_text'], shade=True, color="b")
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/akshat0007/tweet-sentiment-analysis
+
+plt.figure(figsize=(12,6))
+p1=sns.kdeplot(train['Num_words_ST'], shade=True, color="r").set_title('Kernel Distribution of Number Of words')
+p1=sns.kdeplot(train['Num_word_text'], shade=True, color="b")
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/akshat0007/tweet-sentiment-analysis
+
+plt.figure(figsize=(12,6))
+p1=sns.kdeplot(train['Num_words_ST'], shade=True, color="r").set_title('Kernel Distribution of Number Of words')
+p1=sns.kdeplot(train['Num_word_text'], shade=True, color="b")
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #9
+
+ORIGINAL MARKDOWN:
+------------------------------
+**Now It will be more interesting to see the differnce in number of words and jaccard_scores across different Sentiments**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**Now It will be more interesting to see the differnce in number of words and jaccard_scores across different Sentiments**
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/tanulsingh077/twitter-sentiment-extaction-analysis-eda-and-model
+
+plt.figure(figsize=(12,6))
+p1=sns.kdeplot(train[train['sentiment']=='positive']['difference_in_words'], shade=True, color="b").set_title('Kernel Distribution of Difference in Number Of words')
+p2=sns.kdeplot(train[train['sentiment']=='negative']['difference_in_words'], shade=True, color="r")
+plt.figure(figsize=(12,6))
+sns.distplot(train[train['sentiment']=='neutral']['difference_in_words'],kde=False)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/akshat0007/tweet-sentiment-analysis
+
+plt.figure(figsize=(12,6))
+p1=sns.kdeplot(train[train['sentiment']=='positive']['difference_in_words'], shade=True, color="b").set_title('Kernel Distribution of Difference in Number Of words')
+p2=sns.kdeplot(train[train['sentiment']=='negative']['difference_in_words'], shade=True, color="r")
+plt.figure(figsize=(12,6))
+sns.distplot(train[train['sentiment']=='neutral']['difference_in_words'],kde=False)
+k = train[train['Num_word_text']<=2]
+k.groupby('sentiment').mean()['jaccard_score']
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/tanulsingh077/twitter-sentiment-extaction-analysis-eda-and-model
+
+plt.figure(figsize=(12,6))
+sns.distplot(train[train['sentiment']=='neutral']['jaccard_score'],kde=False)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #10
+
+ORIGINAL MARKDOWN:
+------------------------------
+### Display a random image with bounding boxes
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+### Display a random image with bounding boxes
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/aharless/fork-v8-henrique-s-model-w-randomly-higher-score
+
+# Load and display random sample and their bounding boxes
+
+class_ids = [0]
+while class_ids[0] == 0:  ## look for a mask
+    image_id = random.choice(dataset_train.image_ids)
+    image_fp = dataset_train.image_reference(image_id)
+    image = dataset_train.load_image(image_id)
+    mask, class_ids = dataset_train.load_mask(image_id)
+
+print(image.shape)
+
+plt.figure(figsize=(10, 10))
+plt.subplot(1, 2, 1)
+plt.imshow(image)
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+masked = np.zeros(image.shape[:2])
+for i in range(mask.shape[2]):
+    masked += image[:, :, 0] * mask[:, :, i]
+plt.imshow(masked, cmap='gray')
+plt.axis('off')
+
+print(image_fp)
+print(class_ids)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hmendonca/mask-rcnn-and-coco-transfer-learning-lb-0-155
+
+# Load and display random sample and their bounding boxes
+
+class_ids = [0]
+while class_ids[0] == 0:  ## look for a mask
+    image_id = random.choice(dataset_train.image_ids)
+    image_fp = dataset_train.image_reference(image_id)
+    image = dataset_train.load_image(image_id)
+    mask, class_ids = dataset_train.load_mask(image_id)
+
+print(image.shape)
+
+plt.figure(figsize=(10, 10))
+plt.subplot(1, 2, 1)
+plt.imshow(image)
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+masked = np.zeros(image.shape[:2])
+for i in range(mask.shape[2]):
+    masked += image[:, :, 0] * mask[:, :, i]
+plt.imshow(masked, cmap='gray')
+plt.axis('off')
+
+print(image_fp)
+print(class_ids)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hmendonca/mask-rcnn-with-submission
+
+# Load and display random sample and their bounding boxes
+
+class_ids = [0]
+while class_ids[0] == 0:  ## look for a mask
+    image_id = random.choice(dataset_train.image_ids)
+    image_fp = dataset_train.image_reference(image_id)
+    image = dataset_train.load_image(image_id)
+    mask, class_ids = dataset_train.load_mask(image_id)
+
+print(image.shape)
+
+plt.figure(figsize=(10, 10))
+plt.subplot(1, 2, 1)
+plt.imshow(image)
+plt.axis('off')
+
+plt.subplot(1, 2, 2)
+masked = np.zeros(image.shape[:2])
+for i in range(mask.shape[2]):
+    masked += image[:, :, 0] * mask[:, :, i]
+plt.imshow(masked, cmap='gray')
+plt.axis('off')
+
+print(image_fp)
+print(class_ids)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #11
+
+ORIGINAL MARKDOWN:
+------------------------------
+### Image Augmentation. Try finetuning some variables to custom values
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+### Image Augmentation. Try finetuning some variables to custom values
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/aharless/fork-v8-henrique-s-model-w-randomly-higher-score
+
+# Image augmentation (light but constant)
+augmentation = iaa.Sequential([
+    iaa.OneOf([ ## geometric transform
+        iaa.Affine(
+            scale={"x": (0.98, 1.02), "y": (0.98, 1.02)},
+            translate_percent={"x": (-0.02, 0.02), "y": (-0.04, 0.04)},
+            rotate=(-2, 2),
+            shear=(-1, 1),
+        ),
+        iaa.PiecewiseAffine(scale=(0.001, 0.025)),
+    ]),
+    iaa.OneOf([ ## brightness or contrast
+        iaa.Multiply((0.9, 1.1)),
+        iaa.ContrastNormalization((0.9, 1.1)),
+    ]),
+    iaa.OneOf([ ## blur or sharpen
+        iaa.GaussianBlur(sigma=(0.0, 0.1)),
+        iaa.Sharpen(alpha=(0.0, 0.1)),
+    ]),
+])
+
+# test on the same image as above
+imggrid = augmentation.draw_grid(image[:, :, 0], cols=5, rows=2)
+plt.figure(figsize=(30, 12))
+_ = plt.imshow(imggrid[:, :, 0], cmap='gray')
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hmendonca/mask-rcnn-and-coco-transfer-learning-lb-0-155
+
+# Image augmentation (light but constant)
+augmentation = iaa.Sequential([
+    iaa.OneOf([ ## geometric transform
+        iaa.Affine(
+            scale={"x": (0.98, 1.02), "y": (0.98, 1.04)},
+            translate_percent={"x": (-0.02, 0.02), "y": (-0.04, 0.04)},
+            rotate=(-2, 2),
+            shear=(-1, 1),
+        ),
+        iaa.PiecewiseAffine(scale=(0.001, 0.025)),
+    ]),
+    iaa.OneOf([ ## brightness or contrast
+        iaa.Multiply((0.9, 1.1)),
+        iaa.ContrastNormalization((0.9, 1.1)),
+    ]),
+    iaa.OneOf([ ## blur or sharpen
+        iaa.GaussianBlur(sigma=(0.0, 0.1)),
+        iaa.Sharpen(alpha=(0.0, 0.1)),
+    ]),
+])
+
+# test on the same image as above
+imggrid = augmentation.draw_grid(image[:, :, 0], cols=5, rows=2)
+plt.figure(figsize=(30, 12))
+_ = plt.imshow(imggrid[:, :, 0], cmap='gray')
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ashishpatel26/u-net-model-with-abstract-layer-submission
+
+from keras.preprocessing.image import ImageDataGenerator
+dg_args = dict(featurewise_center = False, 
+                  samplewise_center = False,
+                  rotation_range = 45, 
+                  width_shift_range = 0.1, 
+                  height_shift_range = 0.1, 
+                  shear_range = 0.01,
+                  zoom_range = [0.9, 1.25],  
+                  horizontal_flip = True, 
+                  vertical_flip = True,
+                  fill_mode = 'reflect',
+                   data_format = 'channels_last')
+# brightness can be problematic since it seems to change the labels differently from the images 
+if AUGMENT_BRIGHTNESS:
+    dg_args[' brightness_range'] = [0.5, 1.5]
+image_gen = ImageDataGenerator(**dg_args)
+
+if AUGMENT_BRIGHTNESS:
+    dg_args.pop('brightness_range')
+label_gen = ImageDataGenerator(**dg_args)
+
+def create_aug_gen(in_gen, seed = None):
+    np.random.seed(seed if seed is not None else np.random.choice(range(9999)))
+    for in_x, in_y in in_gen:
+        seed = np.random.choice(range(9999))
+        # keep the seeds syncronized otherwise the augmentation to the images is different from the masks
+        g_x = image_gen.flow(255*in_x, 
+                             batch_size = in_x.shape[0], 
+                             seed = seed, 
+                             shuffle=True)
+        g_y = label_gen.flow(in_y, 
+                             batch_size = in_x.shape[0], 
+                             seed = seed, 
+                             shuffle=True)
+
+        yield next(g_x)/255.0, next(g_y)
+cur_gen = create_aug_gen(train_gen)
+t_x, t_y = next(cur_gen)
+print('x', t_x.shape, t_x.dtype, t_x.min(), t_x.max())
+print('y', t_y.shape, t_y.dtype, t_y.min(), t_y.max())
+# only keep first 9 samples to examine in detail
+t_x = t_x[:9]
+t_y = t_y[:9]
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize = (20, 10))
+ax1.imshow(montage_rgb(t_x), cmap='gray')
+ax1.set_title('images')
+ax2.imshow(montage(t_y[:, :, :, 0]), cmap='gray_r')
+ax2.set_title('ships')
+gc.collect()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #12
+
+ORIGINAL MARKDOWN:
+------------------------------
+### How does the predicted box compared to the expected value? Let's use the validation dataset to check. 
+
+Note that we trained only one epoch for **demonstration purposes ONLY**. You might be able to improve performance running more epochs. 
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+### How does the predicted box compared to the expected value? Let's use the validation dataset to check. 
+
+Note that we trained only one epoch for **demonstration purposes ONLY**. You might be able to improve performance running more epochs. 
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/aharless/fork-v8-henrique-s-model-w-randomly-higher-score
+
+# Show few example of ground truth vs. predictions on the validation dataset 
+dataset = dataset_val
+fig = plt.figure(figsize=(10, 30))
+
+for i in range(6):
+
+    image_id = random.choice(dataset.image_ids)
+    
+    original_image, image_meta, gt_class_id, gt_bbox, gt_mask =\
+        modellib.load_image_gt(dataset_val, inference_config, 
+                               image_id, use_mini_mask=False)
+    
+    print(original_image.shape)
+    plt.subplot(6, 2, 2*i + 1)
+    visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, 
+                                dataset.class_names,
+                                colors=get_colors_for_class_ids(gt_class_id), ax=fig.axes[-1])
+    
+    plt.subplot(6, 2, 2*i + 2)
+    results = model.detect([original_image]) #, verbose=1)
+    r = results[0]
+    visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'], 
+                                dataset.class_names, r['scores'], 
+                                colors=get_colors_for_class_ids(r['class_ids']), ax=fig.axes[-1])
+# Get filenames of test dataset DICOM images
+test_image_fps = get_dicom_fps(test_dicom_dir)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hmendonca/mask-rcnn-and-coco-transfer-learning-lb-0-155
+
+# Show few example of ground truth vs. predictions on the validation dataset 
+dataset = dataset_val
+fig = plt.figure(figsize=(10, 30))
+
+for i in range(6):
+
+    image_id = random.choice(dataset.image_ids)
+    
+    original_image, image_meta, gt_class_id, gt_bbox, gt_mask =\
+        modellib.load_image_gt(dataset_val, inference_config, 
+                               image_id, use_mini_mask=False)
+    
+    print(original_image.shape)
+    plt.subplot(6, 2, 2*i + 1)
+    visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id, 
+                                dataset.class_names,
+                                colors=get_colors_for_class_ids(gt_class_id), ax=fig.axes[-1])
+    
+    plt.subplot(6, 2, 2*i + 2)
+    results = model.detect([original_image]) #, verbose=1)
+    r = results[0]
+    visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'], 
+                                dataset.class_names, r['scores'], 
+                                colors=get_colors_for_class_ids(r['class_ids']), ax=fig.axes[-1])
+# Get filenames of test dataset DICOM images
+test_image_fps = get_dicom_fps(test_dicom_dir)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ragnar123/exploratory-data-analysis-and-baseline-lgbm
+
+plot_time_freq(train_st, 'steam', 'train')
+plot_time_freq(test_st, 'steam', 'test')
+check_series(train_st, 1)
+check_series(test_st, 2)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #13
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Confusion matrix
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## CONFUSION MATRIX
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/gaborfodor/seedlings-pretrained-keras-models
+
+cnf_matrix = confusion_matrix(yv, valid_preds)
+abbreviation = ['BG', 'Ch', 'Cl', 'CC', 'CW', 'FH', 'LSB', 'M', 'SM', 'SP', 'SFC', 'SB']
+pd.DataFrame({'class': CATEGORIES, 'abbreviation': abbreviation})
+fig, ax = plt.subplots(1)
+ax = sns.heatmap(cnf_matrix, ax=ax, cmap=plt.cm.Greens, annot=True)
+ax.set_xticklabels(abbreviation)
+ax.set_yticklabels(abbreviation)
+plt.title('Confusion Matrix')
+plt.ylabel('True class')
+plt.xlabel('Predicted class')
+fig.savefig('Confusion matrix.png', dpi=300)
+plt.show();
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/vincentlugat/ieee-lgb-bayesian-opt
+
+# Confusion matrix 
+def plot_confusion_matrix(cm, classes,
+                          normalize = False,
+                          title = 'Confusion matrix"',
+                          cmap = plt.cm.Blues) :
+    plt.imshow(cm, interpolation = 'nearest', cmap = cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation = 0)
+    plt.yticks(tick_marks, classes)
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])) :
+        plt.text(j, i, cm[i, j],
+                 horizontalalignment = 'center',
+                 color = 'white' if cm[i, j] > thresh else 'black')
+ 
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/dataraj/fastai-tutorial-for-image-classification
+
+interp = ClassificationInterpretation.from_learner(learner)
+interp.plot_confusion_matrix(title='Confusion matrix')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #14
+
+ORIGINAL MARKDOWN:
+------------------------------
+**First we develop a list of the top words used across all questions, giving us a glimpse into the core vocabulary of the source data. Stop words are omitted here to avoid any trivial conjunctions, prepositions, etc.**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**First we develop a list of the top words used across all questions, giving us a glimpse into the core vocabulary of the source data. Stop words are omitted here to avoid any trivial conjunctions, prepositions, etc.**
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/get-started-with-nlp-lda-lsa
+
+reindexed_data = df_train['question_body']
+reindexed_data1 = df_train['answer']
+# Define helper functions
+def get_top_n_words(n_top_words, count_vectorizer, text_data):
+    '''
+    returns a tuple of the top n words in a sample and their 
+    accompanying counts, given a CountVectorizer object and text sample
+    '''
+    vectorized_headlines = count_vectorizer.fit_transform(text_data.values)
+    vectorized_total = np.sum(vectorized_headlines, axis=0)
+    word_indices = np.flip(np.argsort(vectorized_total)[0,:], 1)
+    word_values = np.flip(np.sort(vectorized_total)[0,:],1)
+    
+    word_vectors = np.zeros((n_top_words, vectorized_headlines.shape[1]))
+    for i in range(n_top_words):
+        word_vectors[i,word_indices[0,i]] = 1
+
+    words = [word[0].encode('ascii').decode('utf-8') for 
+             word in count_vectorizer.inverse_transform(word_vectors)]
+
+    return (words, word_values[0,:n_top_words].tolist()[0])
+count_vectorizer = CountVectorizer(stop_words='english')
+words, word_values = get_top_n_words(n_top_words=25,
+                                     count_vectorizer=count_vectorizer, 
+                                     text_data=reindexed_data)
+
+fig, ax = plt.subplots(figsize=(10,4))
+ax.bar(range(len(words)), word_values);
+ax.set_xticks(range(len(words)));
+ax.set_xticklabels(words, rotation='vertical');
+ax.set_title('Top words in headlines dataset (excluding stop words)');
+ax.set_xlabel('Word');
+ax.set_ylabel('Number of occurences');
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+reindexed_data = train_ann['question']
+# Define helper functions
+def get_top_n_words(n_top_words, count_vectorizer, text_data):
+    '''
+    returns a tuple of the top n words in a sample and their 
+    accompanying counts, given a CountVectorizer object and text sample
+    '''
+    vectorized_headlines = count_vectorizer.fit_transform(text_data.values)
+    vectorized_total = np.sum(vectorized_headlines, axis=0)
+    word_indices = np.flip(np.argsort(vectorized_total)[0,:], 1)
+    word_values = np.flip(np.sort(vectorized_total)[0,:],1)
+    
+    word_vectors = np.zeros((n_top_words, vectorized_headlines.shape[1]))
+    for i in range(n_top_words):
+        word_vectors[i,word_indices[0,i]] = 1
+
+    words = [word[0].encode('ascii').decode('utf-8') for 
+             word in count_vectorizer.inverse_transform(word_vectors)]
+
+    return (words, word_values[0,:n_top_words].tolist()[0])
+count_vectorizer = CountVectorizer(stop_words='english')
+words, word_values = get_top_n_words(n_top_words=15,
+                                     count_vectorizer=count_vectorizer, 
+                                     text_data=reindexed_data)
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(range(len(words)), word_values);
+ax.set_xticks(range(len(words)));
+ax.set_xticklabels(words, rotation='vertical');
+ax.set_title('Top words in headlines dataset (excluding stop words)');
+ax.set_xlabel('Word');
+ax.set_ylabel('Number of occurences');
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/tanulsingh077/twitter-sentiment-extaction-analysis-eda-and-model
+
+def remove_stopword(x):
+    return [y for y in x if y not in stopwords.words('english')]
+train['temp_list'] = train['temp_list'].apply(lambda x:remove_stopword(x))
+top = Counter([item for sublist in train['temp_list'] for item in sublist])
+temp = pd.DataFrame(top.most_common(20))
+temp = temp.iloc[1:,:]
+temp.columns = ['Common_words','count']
+temp.style.background_gradient(cmap='Purples')
+fig = px.treemap(temp, path=['Common_words'], values='count',title='Tree of Most Common Words')
+fig.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #15
+
+ORIGINAL MARKDOWN:
+------------------------------
+Thus we have converted our initial small sample of headlines into a list of predicted topic categories, where each category is characterised by its most frequent words. The relative magnitudes of each of these categories can then be easily visualised though use of a bar chart.
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+Thus we have converted our initial small sample of headlines into a list of predicted topic categories, where each category is characterised by its most frequent words. The relative magnitudes of each of these categories can then be easily visualised though use of a bar chart.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/get-started-with-nlp-lda-lsa
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(8,4))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of questions');
+ax.set_title('LSA topic counts');
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of questions');
+ax.set_title('LSA topic counts');
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of questions');
+ax.set_title('LSA topic counts');
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #16
+
+ORIGINAL MARKDOWN:
+------------------------------
+**All that remains is to plot the clustered questions. Also included are the top three words in each cluster, which are placed at the centroid for that topic.**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**All that remains is to plot the clustered questions. Also included are the top three words in each cluster, which are placed at the centroid for that topic.**
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/get-started-with-nlp-lda-lsa
+
+top_3_words_lsa = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+lsa_mean_topic_vectors = get_mean_topic_vectors(lsa_keys, tsne_lsa_vectors)
+
+plot = figure(title="t-SNE Clustering of {} LSA Topics".format(n_topics), plot_width=700, plot_height=700)
+plot.scatter(x=tsne_lsa_vectors[:,0], y=tsne_lsa_vectors[:,1], color=colormap[lsa_keys])
+
+for t in range(n_topics):
+    label = Label(x=lsa_mean_topic_vectors[t][0], y=lsa_mean_topic_vectors[t][1], 
+                  text=top_3_words_lsa[t], text_color=colormap[t])
+    plot.add_layout(label)
+    
+show(plot)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+top_3_words_lsa = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+lsa_mean_topic_vectors = get_mean_topic_vectors(lsa_keys, tsne_lsa_vectors)
+
+plot = figure(title="t-SNE Clustering of {} LSA Topics".format(n_topics), plot_width=700, plot_height=700)
+plot.scatter(x=tsne_lsa_vectors[:,0], y=tsne_lsa_vectors[:,1], color=colormap[lsa_keys])
+
+for t in range(n_topics):
+    label = Label(x=lsa_mean_topic_vectors[t][0], y=lsa_mean_topic_vectors[t][1], 
+                  text=top_3_words_lsa[t], text_color=colormap[t])
+    plot.add_layout(label)
+    
+show(plot)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/get-started-with-nlp-lda-lsa
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(8,4))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of questions');
+ax.set_title('LSA topic counts');
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #17
+
+ORIGINAL MARKDOWN:
+------------------------------
+**Once again, we take the $\arg \max$ of each entry in the topic matrix to obtain the predicted topic category for each question. These topic categories can then be characterised by their most frequent words.**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+Once again, we take the $\arg \max$ of each entry in the topic matrix to obtain the predicted topic category for each question. These topic categories can then be characterised by their most frequent words.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/get-started-with-nlp-lda-lsa
+
+lda_keys = get_keys(lda_topic_matrix)
+lda_categories, lda_counts = keys_to_counts(lda_keys)
+top_n_words_lda = get_top_n_words(10, lda_keys, small_document_term_matrix, small_count_vectorizer)
+
+for i in range(len(top_n_words_lda)):
+    print("Topic {}: ".format(i+1), top_n_words_lda[i])
+top_3_words = get_top_n_words(3, lda_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lda_categories]
+
+fig, ax = plt.subplots(figsize=(10,4))
+ax.bar(lda_categories, lda_counts);
+ax.set_xticks(lda_categories);
+ax.set_xticklabels(labels);
+ax.set_title('LDA topic counts');
+ax.set_ylabel('Number of questions');
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+lda_keys = get_keys(lda_topic_matrix)
+lda_categories, lda_counts = keys_to_counts(lda_keys)
+top_n_words_lda = get_top_n_words(10, lda_keys, small_document_term_matrix, small_count_vectorizer)
+
+for i in range(len(top_n_words_lda)):
+    print("Topic {}: ".format(i+1), top_n_words_lda[i])
+top_3_words = get_top_n_words(3, lda_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lda_categories]
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(lda_categories, lda_counts);
+ax.set_xticks(lda_categories);
+ax.set_xticklabels(labels);
+ax.set_title('LDA topic counts');
+ax.set_ylabel('Number of questions');
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+lda_keys = get_keys(lda_topic_matrix)
+lda_categories, lda_counts = keys_to_counts(lda_keys)
+top_n_words_lda = get_top_n_words(10, lda_keys, small_document_term_matrix, small_count_vectorizer)
+
+for i in range(len(top_n_words_lda)):
+    print("Topic {}: ".format(i+1), top_n_words_lda[i])
+top_3_words = get_top_n_words(3, lda_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lda_categories]
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(lda_categories, lda_counts);
+ax.set_xticks(lda_categories);
+ax.set_xticklabels(labels);
+ax.set_title('LDA topic counts');
+ax.set_ylabel('Number of questions');
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #18
+
+ORIGINAL MARKDOWN:
+------------------------------
+**However, in order to properly compare LDA with LSA, we again take this topic matrix and project it into two dimensions with $t$-SNE.**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**However, in order to properly compare LDA with LSA, we again take this topic matrix and project it into two dimensions with $t$-SNE.**
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/get-started-with-nlp-lda-lsa
+
+tsne_lda_model = TSNE(n_components=2, perplexity=50, learning_rate=100, 
+                        n_iter=2000, verbose=1, random_state=0, angle=0.75)
+tsne_lda_vectors = tsne_lda_model.fit_transform(lda_topic_matrix)
+top_3_words_lda = get_top_n_words(3, lda_keys, small_document_term_matrix, small_count_vectorizer)
+lda_mean_topic_vectors = get_mean_topic_vectors(lda_keys, tsne_lda_vectors)
+
+plot = figure(title="t-SNE Clustering of {} LDA Topics".format(n_topics), plot_width=600, plot_height=600)
+plot.scatter(x=tsne_lda_vectors[:,0], y=tsne_lda_vectors[:,1], color=colormap[lda_keys])
+
+for t in range(n_topics):
+    label = Label(x=lda_mean_topic_vectors[t][0], y=lda_mean_topic_vectors[t][1], 
+                  text=top_3_words_lda[t], text_color=colormap[t])
+    plot.add_layout(label)
+
+show(plot)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+tsne_lda_model = TSNE(n_components=2, perplexity=50, learning_rate=100, 
+                        n_iter=2000, verbose=1, random_state=0, angle=0.75)
+tsne_lda_vectors = tsne_lda_model.fit_transform(lda_topic_matrix)
+top_3_words_lda = get_top_n_words(3, lda_keys, small_document_term_matrix, small_count_vectorizer)
+lda_mean_topic_vectors = get_mean_topic_vectors(lda_keys, tsne_lda_vectors)
+
+plot = figure(title="t-SNE Clustering of {} LDA Topics".format(n_topics), plot_width=700, plot_height=700)
+plot.scatter(x=tsne_lda_vectors[:,0], y=tsne_lda_vectors[:,1], color=colormap[lda_keys])
+
+for t in range(n_topics):
+    label = Label(x=lda_mean_topic_vectors[t][0], y=lda_mean_topic_vectors[t][1], 
+                  text=top_3_words_lda[t], text_color=colormap[t])
+    plot.add_layout(label)
+
+show(plot)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/theoviel/pubg-eda-feature-engineering-0-0243-top-5
+
+plt.figure(figsize=(12,8))
+sns.distplot(train_df['matchDuration'])
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #19
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Toxic	
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+- Most of the comments are not toxic
+- On the toxic comments most of them are not "highly toxic" (target around 0.2)
+
+### Target distribution (toxic and non-toxic (toxic >= 0.5))
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/eda-topic-modeling-toxic-comment-jigsaw
+
+df_train.columns
+target = df_train['toxic']
+sns.set_style('whitegrid')
+sns.countplot(target)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/dimitreoliveira/toxicity-bias-extensive-eda-and-bi-lstm
+
+train['is_toxic'] = train['target'].apply(lambda x : 1 if (x > 0.5) else 0)
+plt.figure(figsize=(8, 6))
+sns.countplot(train['is_toxic'])
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/dimitreoliveira/toxicity-bias-extensive-eda-and-bi-lstm
+
+train['is_toxic'] = train['target'].apply(lambda x : 1 if (x > 0.5) else 0)
+plt.figure(figsize=(8, 6))
+sns.countplot(train['is_toxic'])
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #20
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Thus we have converted our initial small sample of headlines into a list of predicted topic categories, where each category is characterised by its most frequent words. The relative magnitudes of each of these categories can then be easily visualised though use of a bar chart.
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+Thus we have converted our initial small sample of headlines into a list of predicted topic categories, where each category is characterised by its most frequent words. The relative magnitudes of each of these categories can then be easily visualised though use of a bar chart.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/eda-topic-modeling-toxic-comment-jigsaw
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(8,4))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of comments');
+ax.set_title('LSA topic counts');
+plt.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of questions');
+ax.set_title('LSA topic counts');
+plt.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/hamditarek/topic-modeling-lsa-and-lda
+
+top_3_words = get_top_n_words(3, lsa_keys, small_document_term_matrix, small_count_vectorizer)
+labels = ['Topic {}: \n'.format(i) + top_3_words[i] for i in lsa_categories]
+
+fig, ax = plt.subplots(figsize=(16,8))
+ax.bar(lsa_categories, lsa_counts);
+ax.set_xticks(lsa_categories);
+ax.set_xticklabels(labels);
+ax.set_ylabel('Number of questions');
+ax.set_title('LSA topic counts');
+plt.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #21
+
+ORIGINAL MARKDOWN:
+------------------------------
+**Number of chars and words in Question body**
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+**Number of chars and words in answer**
+
+Answer number chars/words distribution is similar to question body.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/corochann/google-quest-first-data-introduction
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+sns.distplot(train['question_body_n_chars'], label='train', ax=axes[0])
+sns.distplot(test['question_body_n_chars'], label='test', ax=axes[0])
+axes[0].legend()
+sns.distplot(train['question_body_n_words'], label='train', ax=axes[1])
+sns.distplot(test['question_body_n_words'], label='test', ax=axes[1])
+axes[1].legend()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/corochann/google-quest-first-data-introduction
+
+train['answer_n_chars'].clip(0, 5000, inplace=True)
+test['answer_n_chars'].clip(0, 5000, inplace=True)
+train['answer_n_words'].clip(0, 1000, inplace=True)
+test['answer_n_words'].clip(0, 1000, inplace=True)
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+sns.distplot(train['answer_n_chars'], label='train', ax=axes[0])
+sns.distplot(test['answer_n_chars'], label='test', ax=axes[0])
+axes[0].legend()
+sns.distplot(train['answer_n_words'], label='train', ax=axes[1])
+sns.distplot(test['answer_n_words'], label='test', ax=axes[1])
+axes[1].legend()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/paultimothymooney/identify-sentence-author-keras-plotly
+
+def create_docs(df, n_gram_max=4):
+    def add_ngram(q, n_gram_max):
+            ngrams = []
+            for n in range(1, n_gram_max+1):
+                for w_index in range(len(q)-n+1):
+                    ngrams.append('--'.join(q[w_index:w_index+n]))
+            return q + ngrams
+        
+    docs = []
+    for doc in df.text:
+        doc = preprocess(doc).split()
+        docs.append(' '.join(add_ngram(doc, n_gram_max)))
+    
+    return docs
+min_count = 15
+
+docs = create_docs(df)
+tokenizer = Tokenizer(lower=True, filters='')
+tokenizer.fit_on_texts(docs)
+num_words = sum([1 for _, v in tokenizer.word_counts.items() if v >= min_count])
+
+tokenizer = Tokenizer(num_words=num_words, lower=True, filters='')
+tokenizer.fit_on_texts(docs)
+docs = tokenizer.texts_to_sequences(docs)
+
+maxlen = None
+
+docs = pad_sequences(sequences=docs, maxlen=maxlen)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #22
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Load Data
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+### Load Data
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/kmader/jigsaw-pretraining-for-steel
+
+data_dir = Path('..') / 'input' / 'severstal-steel-defect-detection'
+# Load the data
+train_df = pd.read_csv(data_dir / "train.csv")
+train_df['ImageId'] = train_df['ImageId_ClassId'].map(lambda x: x.split('_')[0])
+train_df['ClassId'] = train_df['ImageId_ClassId'].map(lambda x: x.split('_')[-1])
+train_df['image_path'] = train_df['ImageId'].map(lambda x: str(data_dir / 'train_images' / x))
+train_df.drop('ImageId_ClassId', axis=1, inplace=True)
+flat_train_df = train_df.pivot_table(index=['ImageId', 'image_path'], columns='ClassId', values='EncodedPixels', aggfunc='first')
+flat_train_df['defects_count'] = flat_train_df.applymap(lambda x: len(x) if isinstance(x, str) else 0).sum(axis=1)
+flat_train_df = flat_train_df.reset_index().sort_values('defects_count', ascending=False)
+print(flat_train_df.shape)
+flat_train_df.head(5)
+def make_mask(c_row, mask_channel):
+    '''Given a row index, return image_id and mask (256, 1600, 1)'''
+    # 4:class 1～4 (ch:0～3)
+    mask = np.zeros(256 * 1600, dtype=np.bool)
+    if c_row[mask_channel] is not np.nan:
+        label = c_row[mask_channel].split(" ")
+        positions = map(int, label[0::2])
+        length = map(int, label[1::2])
+        
+        for pos, le in zip(positions, length):
+            mask[pos:(pos + le)] = 1
+    return mask.reshape(256, 1600, order='F')
+def idx_mask(in_mask):
+    return (1+np.argmax(in_mask, -1))*np.max(in_mask, -1)
+def full_mask(c_row):
+    return np.stack([make_mask(c_row, '{}'.format(i)) for i in range(1, 5)], -1)
+rand_row = flat_train_df.sample(1).iloc[0]
+rand_img = imread(rand_row['image_path'], as_gray=True)
+rand_mask = full_mask(rand_row)
+plt.imshow(label2rgb(label=idx_mask(rand_mask), image=rand_img, bg_label=0))
+%%time
+# calculate for all rows
+if False:
+    flat_train_df['mask_image'] = flat_train_df.apply(full_mask, axis=1)
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/nicapotato/this-model-is-bland-simple-logistic-starter
+
+debug = False
+df = pd.read_json('../input/train.json').set_index('id')
+test_df = pd.read_json('../input/test.json').set_index('id')
+if debug is True:
+    df = df.sample(100)
+    test_df = test_df.sample(100)
+traindex = df.index
+testdex = test_df.index
+print("Training Data Shape: ",df.shape)
+print("Testing Data Shape: ", test_df.shape)
+y = df.cuisine.copy()
+
+# Combine For Pre-Processing
+df = pd.concat([df.drop("cuisine", axis=1), test_df], axis=0)
+df_index = df.index
+print("All Data Shape: ", df.shape)
+del test_df; gc.collect();
+
+sns.countplot(y=y, order=y.value_counts().reset_index()["index"])
+plt.title("Cuisine Distribution")
+plt.show()
+
+df.head()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+import numpy as np 
+import pandas as pd 
+from datetime import datetime
+
+import os
+from os.path import join as pjoin
+
+data_root = '../input/make-data-ready'
+print(os.listdir(data_root))
+
+pd.set_option('display.max_rows',200)
+
+from sklearn.preprocessing import LabelEncoder
+
+from pprint import pprint
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+def load_data(data='train',n=2):
+    df = pd.DataFrame()
+    for i in range(n) :
+        if data=='train':
+            if i > 8 :
+                break
+            dfpart = pd.read_pickle(pjoin(data_root,f'train_{i}.pkl'))
+        elif data=='test':
+            if i > 2 :
+                break
+            dfpart = pd.read_pickle(pjoin(data_root,f'test_{i}.pkl'))
+        df = pd.concat([df,dfpart])
+        del dfpart
+    return df
+        
+df_train = load_data(n=9)
+df_test = load_data('test',n=4)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #23
+
+ORIGINAL MARKDOWN:
+------------------------------
+## CV Model
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## CV Model
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/nicapotato/categorical-catboost-pool-cv-bayes-opt
+
+# Prepare Data Object
+categorical_index = list(range(0, len(categorical)))
+features_names = df.columns
+
+catboost_pool = catboost.Pool(df.loc[traindex,:],
+    label=y,
+    cat_features=categorical_index)
+
+test_pool = catboost.Pool(data=df.loc[testdex,:],
+    cat_features = categorical_index)
+
+del df
+gc.collect()
+def catboost_blackbox(max_depth, reg_lambda):
+    # num_leaves removed
+    param = {
+        'learning_rate': 0.2,
+        'bagging_temperature': 0.1, 
+        'l2_leaf_reg': reg_lambda,
+        'depth': int(max_depth), 
+#         'max_leaves': int(num_leaves),
+#         'max_bin':255,
+        'iterations' : top_boosting_rounds,
+        'task_type':'GPU',
+#         'grow_policy': 'Lossguide '
+        'loss_function' : "Logloss",
+        'objective':'Logloss',
+        'eval_metric' : "AUC",
+        'bootstrap_type' : 'Bayesian',
+        'random_seed': seed,
+        'early_stopping_rounds' : early_stopping_rounds,
+        'use_best_model': False,
+        "verbose": False
+    }
+    
+    modelstart= time.time()
+    scores = catboost.cv(catboost_pool,
+                param,
+                fold_count = 2,
+                stratified = True,
+                shuffle = True,
+                partition_random_seed = seed,
+                plot = False
+                )
+    runtime = (time.time() - modelstart)/60
+    
+    optimise = scores.loc[scores['test-AUC-mean'].idxmax(),'test-AUC-mean'] - scores.loc[scores['test-AUC-mean'].idxmax(),'test-AUC-std']
+    optimisation_info.append([scores['test-AUC-mean'].idxmax(), optimise, runtime, param, scores['test-AUC-mean'].idxmax()])
+    
+    
+    return optimise
+parameter_bounds = {
+#     'num_leaves': (31, 500), 
+    'reg_lambda': (0.1, 10),
+    'max_depth':(3,16)
+}
+
+init_points = 2
+n_iter = 8
+
+optimisation_info = []
+CATBOOST_BO = BayesianOptimization(catboost_blackbox,
+                                   parameter_bounds,
+                                   random_state=seed)
+with timer("Bayesian Optimisation - {} Iterations".format(init_points + n_iter)):
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore')
+        CATBOOST_BO.maximize(init_points = init_points,
+                             n_iter = n_iter,
+                             acq = 'ucb',
+                             xi = 0.0,
+                             alpha = 1e-6)
+print("Best Score: {}".format(CATBOOST_BO.max['target']))
+CATBOOST_BO.max['params']
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/nicapotato/categorical-ii-catboost-pool-cv-bayes-opt-gpu
+
+# Prepare Data Object
+categorical_index = list(range(0, len(categorical)))
+features_names = df.columns
+
+catboost_pool = catboost.Pool(df.loc[traindex,:],
+    label=y,
+    cat_features=categorical_index)
+
+test_pool = catboost.Pool(data=df.loc[testdex,:],
+    cat_features = categorical_index)
+
+del df
+gc.collect()
+def catboost_blackbox(max_depth, reg_lambda):
+    # num_leaves removed
+    param = {
+        'learning_rate': 0.2,
+        'bagging_temperature': 0.1, 
+        'l2_leaf_reg': reg_lambda,
+        'depth': int(max_depth), 
+#         'max_leaves': int(num_leaves),
+#         'max_bin':255,
+        'iterations' : top_boosting_rounds,
+        'task_type':'GPU',
+#         'grow_policy': 'Lossguide '
+        'loss_function' : "Logloss",
+        'objective':'Logloss',
+        'eval_metric' : "AUC",
+        'bootstrap_type' : 'Bayesian',
+        'random_seed': seed,
+        'early_stopping_rounds' : early_stopping_rounds,
+        'use_best_model': False,
+        "verbose": False
+    }
+    
+    modelstart= time.time()
+    scores = catboost.cv(catboost_pool,
+                param,
+                fold_count = 2,
+                stratified = True,
+                shuffle = True,
+                partition_random_seed = seed,
+                plot = False
+                )
+    runtime = (time.time() - modelstart)/60
+    
+    optimise = scores.loc[scores['test-AUC-mean'].idxmax(),'test-AUC-mean'] - scores.loc[scores['test-AUC-mean'].idxmax(),'test-AUC-std']
+    optimisation_info.append([scores['test-AUC-mean'].idxmax(), optimise, runtime, param, scores['test-AUC-mean'].idxmax()])
+    
+    
+    return optimise
+parameter_bounds = {
+#     'num_leaves': (31, 500), 
+    'reg_lambda': (0.1, 10),
+    'max_depth':(3,16)
+}
+
+init_points = 2
+n_iter = 4
+
+optimisation_info = []
+CATBOOST_BO = BayesianOptimization(catboost_blackbox,
+                                   parameter_bounds,
+                                   random_state=seed)
+with timer("Bayesian Optimisation - {} Iterations".format(init_points + n_iter)):
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore')
+        CATBOOST_BO.maximize(init_points = init_points,
+                             n_iter = n_iter,
+                             acq = 'ucb',
+                             xi = 0.0,
+                             alpha = 1e-6)
+print("Best Score: {}".format(CATBOOST_BO.max['target']))
+CATBOOST_BO.max['params']
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+import os, sys, time
+import cv2
+import numpy as np
+import pandas as pd
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+%matplotlib inline
+import matplotlib.pyplot as plt
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #24
+
+ORIGINAL MARKDOWN:
+------------------------------
+## Lower Learning Rate with Best Parameters
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+## Lower Learning Rate with Best Parameters
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/nicapotato/categorical-catboost-pool-cv-bayes-opt
+
+optimisation_pd = pd.DataFrame(optimisation_info, columns = ['Best Round', 'Score', 'Runtime','Param', 'Iterations'])
+optimisation_pd.head()
+optimisation_pd.describe()
+best_param = optimisation_pd.loc[optimisation_pd['Score'].idxmax(),'Param']
+best_param['iterations'] = top_boosting_rounds*3
+best_param['learning_rate'] = 0.04
+best_param['early_stopping_rounds'] = early_stopping_rounds
+
+best_param
+with timer("Catboost CV"):
+    scores = catboost.cv(catboost_pool,
+                best_param,
+                fold_count = 3,
+                stratified = True,
+                partition_random_seed = seed,
+                plot = True,
+                shuffle = True,
+                )
+
+display(scores.tail())
+
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 4))
+axes[0].plot(scores['iterations'],scores['test-Logloss-mean'], label='test-Logloss-mean')
+axes[0].plot(scores['iterations'],scores['train-Logloss-mean'], label='train-Logloss-mean')
+axes[0].legend()
+
+axes[1].plot(scores['iterations'],scores['test-AUC-mean'], label='validation_rocauc')
+axes[1].legend()
+plt.show()
+
+best_iteration = scores['test-AUC-mean'].idxmax()
+print("Best Iteration: {}".format(best_iteration))
+
+display(scores.loc[best_iteration,:])
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/nicapotato/categorical-ii-catboost-pool-cv-bayes-opt-gpu
+
+optimisation_pd = pd.DataFrame(optimisation_info, columns = ['Best Round', 'Score', 'Runtime','Param', 'Iterations'])
+optimisation_pd.head()
+optimisation_pd.describe()
+best_param = optimisation_pd.loc[optimisation_pd['Score'].idxmax(),'Param']
+best_param['iterations'] = top_boosting_rounds*3
+best_param['learning_rate'] = 0.04
+best_param['early_stopping_rounds'] = early_stopping_rounds
+
+best_param
+with timer("Catboost CV"):
+    scores = catboost.cv(catboost_pool,
+                best_param,
+                fold_count = 3,
+                stratified = True,
+                partition_random_seed = seed,
+                plot = True,
+                shuffle = True,
+                )
+
+display(scores.tail())
+
+fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 4))
+axes[0].plot(scores['iterations'],scores['test-Logloss-mean'], label='test-Logloss-mean')
+axes[0].plot(scores['iterations'],scores['train-Logloss-mean'], label='train-Logloss-mean')
+axes[0].legend()
+
+axes[1].plot(scores['iterations'],scores['test-AUC-mean'], label='validation_rocauc')
+axes[1].legend()
+plt.show()
+
+best_iteration = scores['test-AUC-mean'].idxmax()
+print("Best Iteration: {}".format(best_iteration))
+
+display(scores.loc[best_iteration,:])
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/willkoehrsen/model-tuning-results-random-vs-bayesian-opt
+
+plt.figure(figsize = (8, 7))
+plt.plot(opt_hyp['learning_rate'], opt_hyp['n_estimators'], 'ro')
+plt.xlabel('Learning Rate'); plt.ylabel('N Estimators'); plt.title('Number of Estimators vs Learning Rate');
+plot_3d('reg_alpha', 'reg_lambda', 'score', opt_hyp)
+best_opt_hyp
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #25
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Model Building
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Prophet model
+Building a Prophet model for each building x meter combination.
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ashishpatel26/best-trick-for-audio-data
+
+import librosa
+import numpy as np
+import scipy
+from keras import losses, models, optimizers
+from keras.activations import relu, softmax
+from keras.callbacks import (EarlyStopping, LearningRateScheduler,
+                             ModelCheckpoint, TensorBoard, ReduceLROnPlateau)
+from keras.layers import (Convolution1D, Dense, Dropout, GlobalAveragePooling1D, 
+                          GlobalMaxPool1D, Input, MaxPool1D, concatenate)
+from keras.utils import Sequence, to_categorical
+class Config(object):
+    def __init__(self,
+                 sampling_rate=16000, audio_duration=2, n_classes=41,
+                 use_mfcc=False, n_folds=12, learning_rate=0.0001, 
+                 max_epochs=80, n_mfcc=20):
+        self.sampling_rate = sampling_rate
+        self.audio_duration = audio_duration
+        self.n_classes = n_classes
+        self.use_mfcc = use_mfcc
+        self.n_mfcc = n_mfcc
+        self.n_folds = n_folds
+        self.learning_rate = learning_rate
+        self.max_epochs = max_epochs
+
+        self.audio_length = self.sampling_rate * self.audio_duration
+        if self.use_mfcc:
+            self.dim = (self.n_mfcc, 1 + int(np.floor(self.audio_length/512)), 1)
+        else:
+            self.dim = (self.audio_length, 1)
+class DataGenerator(Sequence):
+    def __init__(self, config, data_dir, list_IDs, labels=None, 
+                 batch_size=64, preprocessing_fn=lambda x: x):
+        self.config = config
+        self.data_dir = data_dir
+        self.list_IDs = list_IDs
+        self.labels = labels
+        self.batch_size = batch_size
+        self.preprocessing_fn = preprocessing_fn
+        self.on_epoch_end()
+        self.dim = self.config.dim
+
+    def __len__(self):
+        return int(np.ceil(len(self.list_IDs) / self.batch_size))
+
+    def __getitem__(self, index):
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        list_IDs_temp = [self.list_IDs[k] for k in indexes]
+        return self.__data_generation(list_IDs_temp)
+
+    def on_epoch_end(self):
+        self.indexes = np.arange(len(self.list_IDs))
+
+    def __data_generation(self, list_IDs_temp):
+        cur_batch_size = len(list_IDs_temp)
+        X = np.empty((cur_batch_size, *self.dim))
+
+        input_length = self.config.audio_length
+        for i, ID in enumerate(list_IDs_temp):
+            file_path = self.data_dir + ID
+            
+            # Read and Resample the audio
+            data, _ = librosa.core.load(file_path, sr=self.config.sampling_rate,
+                                        res_type='kaiser_fast')
+
+            # Random offset / Padding
+            if len(data) > input_length:
+                max_offset = len(data) - input_length
+                offset = np.random.randint(max_offset)
+                data = data[offset:(input_length+offset)]
+            else:
+                if input_length > len(data):
+                    max_offset = input_length - len(data)
+                    offset = np.random.randint(max_offset)
+                else:
+                    offset = 0
+                data = np.pad(data, (offset, input_length - len(data) - offset), "constant")
+                
+            # Normalization + Other Preprocessing
+            if self.config.use_mfcc:
+                data = librosa.feature.mfcc(data, sr=self.config.sampling_rate,
+                                                   n_mfcc=self.config.n_mfcc)
+                data = np.expand_dims(data, axis=-1)
+            else:
+                data = self.preprocessing_fn(data)[:, np.newaxis]
+            X[i,] = data
+
+        if self.labels is not None:
+            y = np.empty(cur_batch_size, dtype=int)
+            for i, ID in enumerate(list_IDs_temp):
+                y[i] = self.labels[ID]
+            return X, to_categorical(y, num_classes=self.config.n_classes)
+        else:
+            return X
+def audio_norm(data):
+    max_data = np.max(data)
+    min_data = np.min(data)
+    data = (data-min_data)/(max_data-min_data+1e-6)
+    return data-0.5
+def get_1d_dummy_model(config):
+    
+    nclass = config.n_classes
+    input_length = config.audio_length
+    
+    inp = Input(shape=(input_length,1))
+    x = GlobalMaxPool1D()(inp)
+    out = Dense(nclass, activation=softmax)(x)
+
+    model = models.Model(inputs=inp, outputs=out)
+    opt = optimizers.Adam(config.learning_rate)
+
+    model.compile(optimizer=opt, loss=losses.categorical_crossentropy, metrics=['acc'])
+    return model
+
+def get_1d_conv_model(config):
+    
+    nclass = config.n_classes
+    input_length = config.audio_length
+    
+    inp = Input(shape=(input_length,1))
+    x = Convolution1D(32, 9, activation=relu, padding="same")(inp)
+    x = Convolution1D(32, 9, activation=relu, padding="same")(x)
+    x = MaxPool1D(16)(x)
+    x = Dropout(rate=0.1)(x)
+    
+    x = Convolution1D(64, 3, activation=relu, padding="same")(x)
+    x = Convolution1D(64, 3, activation=relu, padding="same")(x)
+    x = MaxPool1D(4)(x)
+    x = Dropout(rate=0.1)(x)
+    
+    x = Convolution1D(64, 3, activation=relu, padding="same")(x)
+    x = Convolution1D(64, 3, activation=relu, padding="same")(x)
+    x = MaxPool1D(4)(x)
+    x = Dropout(rate=0.1)(x)
+    
+    x = Convolution1D(128, 3, activation=relu, padding="same")(x)
+    x = Convolution1D(128, 3, activation=relu, padding="same")(x)
+    x = MaxPool1D(4)(x)
+    x = Dropout(rate=0.1)(x)
+    
+    x = Convolution1D(256, 3, activation=relu, padding="same")(x)
+    x = Convolution1D(256, 3, activation=relu, padding="same")(x)
+    x = GlobalMaxPool1D()(x)
+    x = Dropout(rate=0.2)(x)
+
+    x = Dense(64, activation=relu)(x)
+    x = Dense(1028, activation=relu)(x)
+    out = Dense(nclass, activation=softmax)(x)
+
+    model = models.Model(inputs=inp, outputs=out)
+    opt = optimizers.Adam(config.learning_rate)
+
+    model.compile(optimizer=opt, loss=losses.categorical_crossentropy, metrics=['acc'])
+    return model
+LABELS = list(train.label.unique())
+label_idx = {label: i for i, label in enumerate(LABELS)}
+train.set_index("fname", inplace=True)
+test.set_index("fname", inplace=True)
+train["label_idx"] = train.label.apply(lambda x: label_idx[x])
+if not COMPLETE_RUN:
+    train = train[:2000]
+    test = test[:2000]
+config = Config(sampling_rate=16000, audio_duration=2, n_folds=10, learning_rate=0.001)
+if not COMPLETE_RUN:
+    config = Config(sampling_rate=100, audio_duration=1, n_folds=2, max_epochs=1)
+PREDICTION_FOLDER = "predictions_1d_conv"
+if not os.path.exists(PREDICTION_FOLDER):
+    os.mkdir(PREDICTION_FOLDER)
+if os.path.exists('logs/' + PREDICTION_FOLDER):
+    shutil.rmtree('logs/' + PREDICTION_FOLDER)
+
+skf = StratifiedKFold(train.label_idx, n_folds=config.n_folds)
+
+for i, (train_split, val_split) in enumerate(skf):
+    train_set = train.iloc[train_split]
+    val_set = train.iloc[val_split]
+    checkpoint = ModelCheckpoint('best_%d.h5'%i, monitor='val_loss', verbose=1, save_best_only=True)
+    early = EarlyStopping(monitor="val_loss", mode="min", patience=5)
+    tb = TensorBoard(log_dir='./logs/' + PREDICTION_FOLDER + '/fold_%d'%i, write_graph=True)
+
+    callbacks_list = [checkpoint, early, tb]
+    print("Fold: ", i)
+    print("#"*50)
+    if COMPLETE_RUN:
+        model = get_1d_conv_model(config)
+    else:
+        model = get_1d_dummy_model(config)
+
+    train_generator = DataGenerator(config, '../input/freesound-audio-tagging/audio_train/', train_set.index, 
+                                    train_set.label_idx, batch_size=64,
+                                    preprocessing_fn=audio_norm)
+    val_generator = DataGenerator(config, '../input/freesound-audio-tagging/audio_train/', val_set.index, 
+                                  val_set.label_idx, batch_size=64,
+                                  preprocessing_fn=audio_norm)
+
+    history = model.fit_generator(train_generator, callbacks=callbacks_list, validation_data=val_generator,
+                                  epochs=config.max_epochs, use_multiprocessing=True, workers=6, max_queue_size=20)
+
+    model.load_weights('best_%d.h5'%i)
+
+    # Save train predictions
+    train_generator = DataGenerator(config, '../input/freesound-audio-tagging/audio_train/', train.index, batch_size=128,
+                                    preprocessing_fn=audio_norm)
+    predictions = model.predict_generator(train_generator, use_multiprocessing=True, 
+                                          workers=6, max_queue_size=20, verbose=1)
+    np.save(PREDICTION_FOLDER + "/train_predictions_%d.npy"%i, predictions)
+
+    # Save test predictions
+    test_generator = DataGenerator(config, '../input/freesound-audio-tagging/audio_test/', test.index, batch_size=128,
+                                    preprocessing_fn=audio_norm)
+    predictions = model.predict_generator(test_generator, use_multiprocessing=True, 
+                                          workers=6, max_queue_size=20, verbose=1)
+    np.save(PREDICTION_FOLDER + "/test_predictions_%d.npy"%i, predictions)
+
+    # Make a submission file
+    top_3 = np.array(LABELS)[np.argsort(-predictions, axis=1)[:, :3]]
+    predicted_labels = [' '.join(list(x)) for x in top_3]
+    test['label'] = predicted_labels
+    test[['label']].to_csv(PREDICTION_FOLDER + "/predictions_%d.csv"%i)
+import librosa
+SAMPLE_RATE = 44100
+fname = '../input/freesound-audio-tagging/audio_train/' + '00044347.wav'   # Hi-hat
+wav, _ = librosa.core.load(fname, sr=SAMPLE_RATE)
+wav = wav[:2*44100]
+mfcc = librosa.feature.mfcc(wav, sr = SAMPLE_RATE, n_mfcc=40)
+mfcc.shape
+plt.imshow(mfcc, cmap='hot', interpolation='nearest');
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rohanrao/ashrae-prophet-s-prophecy
+
+## external features
+exogenous_features = ["air_temperature", "cloud_coverage", "dew_temperature",
+                      "precip_depth_1_hr", "sea_level_pressure", "wind_direction", "wind_speed"]
+
+## list of predictions
+df_preds = []
+
+## iterating over buildings
+for building in df_train.building_id.unique():
+    
+    ## subsetting building data
+    df_train_building = df_train[df_train.building_id == building]
+    df_test_building = df_test[df_test.building_id == building]
+    
+    ## iterating over meters
+    for meter in df_train_building.meter.unique():
+        
+        ## subsetting meter data
+        df_train_building_meter = df_train_building[df_train_building.meter == meter]
+        df_test_building_meter = df_test_building[df_test_building.meter == meter]
+        
+        ## drop features with all NaNs
+        df_train_building_meter.dropna(axis=1, how="all", inplace=True)
+        
+        print("Building Prophet model for building", building, "and meter", meter)
+        
+        ## initializing model
+        model_prophet = Prophet()
+        
+        ## adding regressors
+        remove_features = []
+        
+        for feature in exogenous_features:
+            if feature in df_train_building_meter.columns:
+                model_prophet.add_regressor(feature)
+            else:
+                remove_features.append(feature)
+
+        for feature in remove_features:
+            exogenous_features.remove(feature)
+        
+        ## building model
+        model_prophet.fit(df_train_building_meter[["ds", "y"] + exogenous_features])
+        
+        ## forecasting predictions
+        forecast = model_prophet.predict(df_test_building_meter[["ds"] + exogenous_features])
+        
+        ## creating predictions dataframe
+        df_pred = pd.DataFrame({"row_id": df_test_building_meter.row_id.values, "meter_reading": np.expm1(forecast.yhat.values)})
+        df_preds.append(df_pred)
+
+        print("Prophet model completed for building", building, "and meter", meter, "\n")
+        
+        ## cleanup
+        gc.collect()
+## visualizing last model built
+model_prophet.plot_components(forecast)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/rohanrao/ashrae-prophet-s-prophecy
+
+## external features
+exogenous_features = ["air_temperature", "cloud_coverage", "dew_temperature",
+                      "precip_depth_1_hr", "sea_level_pressure", "wind_direction", "wind_speed"]
+
+## list of predictions
+df_preds = []
+
+## iterating over buildings
+for building in df_train.building_id.unique():
+    
+    ## subsetting building data
+    df_train_building = df_train[df_train.building_id == building]
+    df_test_building = df_test[df_test.building_id == building]
+    
+    ## iterating over meters
+    for meter in df_train_building.meter.unique():
+        
+        ## subsetting meter data
+        df_train_building_meter = df_train_building[df_train_building.meter == meter]
+        df_test_building_meter = df_test_building[df_test_building.meter == meter]
+        
+        ## drop features with all NaNs
+        df_train_building_meter.dropna(axis=1, how="all", inplace=True)
+        
+        print("Building Prophet model for building", building, "and meter", meter)
+        
+        ## initializing model
+        model_prophet = Prophet()
+        
+        ## adding regressors
+        remove_features = []
+        
+        for feature in exogenous_features:
+            if feature in df_train_building_meter.columns:
+                model_prophet.add_regressor(feature)
+            else:
+                remove_features.append(feature)
+
+        for feature in remove_features:
+            exogenous_features.remove(feature)
+        
+        ## building model
+        model_prophet.fit(df_train_building_meter[["ds", "y"] + exogenous_features])
+        
+        ## forecasting predictions
+        forecast = model_prophet.predict(df_test_building_meter[["ds"] + exogenous_features])
+        
+        ## creating predictions dataframe
+        df_pred = pd.DataFrame({"row_id": df_test_building_meter.row_id.values, "meter_reading": np.expm1(forecast.yhat.values)})
+        df_preds.append(df_pred)
+
+        print("Prophet model completed for building", building, "and meter", meter, "\n")
+        
+        ## cleanup
+        gc.collect()
+## visualizing last model built
+model_prophet.plot_components(forecast)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #26
+
+ORIGINAL MARKDOWN:
+------------------------------
+# Introduction![image.png](attachment:image.png)Coronavirus disease (COVID-19) is an infectious disease caused by a newly discovered coronavirus.
+
+Most people infected with the COVID-19 virus will experience mild to moderate respiratory illness and recover without requiring special treatment. Older people, and those with underlying medical problems like cardiovascular disease, diabetes, chronic respiratory disease, and cancer are more likely to develop serious illness.
+
+The best way to prevent and slow down transmission is be well informed about the COVID-19 virus, the disease it causes and how it spreads. Protect yourself and others from infection by washing your hands or using an alcohol based rub frequently and not touching your face.
+
+The COVID-19 virus spreads primarily through droplets of saliva or discharge from the nose when an infected person coughs or sneezes, so it’s important that you also practice respiratory etiquette (for example, by coughing into a flexed elbow).
+
+At this time, there are no specific vaccines or treatments for COVID-19. However, there are many ongoing clinical trials evaluating potential treatments. WHO will continue to provide updated information as soon as clinical findings become available.
+
+Stay informed:
+
+Protect yourself: advice for the public Myth busters Questions and answers Situation reports All information on the COVID-19 outbreak# Importing Necessary Packages
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+# Introduction
+==============================
+ORIGINAL CODE:
+------------------------------
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+train=pd.read_csv(r"../input/covid19-global-forecasting-week-3/train.csv")
+test=pd.read_csv(r"../input/covid19-global-forecasting-week-3/test.csv")
+train.sample(6)
+test.sample(6)
+==============================
+RECOMMENDED CODE:
+------------------------------
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+import plotly.express as px
+train=pd.read_csv(r"../input/covid19-global-forecasting-week-2/train.csv")
+test=pd.read_csv(r"../input/covid19-global-forecasting-week-2/test.csv")
+train.sample(6)
+test.sample(6)
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+from collections import Counter
+from imblearn.over_sampling import SMOTE
+import matplotlib                  # 2D Plotting Library
+import matplotlib.pyplot as plt
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 5GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+df = pd.read_csv('/kaggle/input/jigsaw-toxic-comment-classification-challenge/train.csv.zip')
+
+rslt_df = df[(df['toxic'] == 0) & (df['severe_toxic'] == 0) & (df['obscene'] == 0) & (df['threat'] == 0) & (df['insult'] == 0) & (df['identity_hate'] == 0)]
+rslt_df2 = df[(df['toxic'] == 1) | (df['severe_toxic'] == 1) | (df['obscene'] == 1) | (df['threat'] == 1) | (df['insult'] == 1) | (df['identity_hate'] == 1)]
+new1 = rslt_df[['id', 'comment_text', 'toxic']].iloc[:23891].copy() 
+new2 = rslt_df2[['id', 'comment_text', 'toxic']].iloc[:946].copy()
+new = pd.concat([new1, new2], ignore_index=True)
+new.tail()
+#test train split
+import numpy as np
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(new["comment_text"], new['toxic'], test_size=0.33)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #27
+
+ORIGINAL MARKDOWN:
+------------------------------
+Confirmed COVID-19 Cases by country
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+Confirmed COVID-19 Cases by country
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/timeseries-forecasting-of-covid-19-week-3-prophet
+
+fig = px.bar(top10, x=top10.index, y='ConfirmedCases', labels={'x':'Country'},
+             color="ConfirmedCases", color_continuous_scale=px.colors.sequential.Brwnyl)
+fig.update_layout(title_text='Confirmed COVID-19 cases by country')
+fig.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/eda-covid-19-week-2
+
+fig = px.bar(top10, x=top10.index, y='ConfirmedCases', labels={'x':'Country'},
+             color="ConfirmedCases", color_continuous_scale=px.colors.sequential.Brwnyl)
+fig.update_layout(title_text='Confirmed COVID-19 cases by country')
+fig.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/eda-covid-19-week-2
+
+fig = px.bar(top10, x=top10.index, y='ConfirmedCases', labels={'x':'Country'},
+             color="ConfirmedCases", color_continuous_scale=px.colors.sequential.Brwnyl)
+fig.update_layout(title_text='Confirmed COVID-19 cases by country')
+fig.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #28
+
+ORIGINAL MARKDOWN:
+------------------------------
+From the above graph, we can say that US has most Confirmed cases and followed by italy.
+The virus has began at China but virus is showing a  greater impact on US and Italy than ChinaConfirmed COVID-19 cases per day in US
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+From the above graph, we can say that US has most Confirmed cases and followed by italy.
+The virus has began at China but virus is showing a  greater impact on US and Italy than China
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/timeseries-forecasting-of-covid-19-week-3-prophet
+
+df_by_date = pd.DataFrame(train.fillna('NA').groupby(['Country_Region','Date'])['ConfirmedCases'].sum().sort_values().reset_index())
+
+fig = px.bar(df_by_date.loc[(df_by_date['Country_Region'] == 'US') &(df_by_date.Date >= '2020-03-01')].sort_values('ConfirmedCases',ascending = False), 
+             x='Date', y='ConfirmedCases', color="ConfirmedCases", color_continuous_scale=px.colors.sequential.BuGn)
+fig.update_layout(title_text='Confirmed COVID-19 cases per day in US')
+fig.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/eda-covid-19-week-2
+
+df_by_date = pd.DataFrame(train.fillna('NA').groupby(['Country_Region','Date'])['ConfirmedCases'].sum().sort_values().reset_index())
+
+fig = px.bar(df_by_date.loc[(df_by_date['Country_Region'] == 'US') &(df_by_date.Date >= '2020-03-01')].sort_values('ConfirmedCases',ascending = False), 
+             x='Date', y='ConfirmedCases', color="ConfirmedCases", color_continuous_scale=px.colors.sequential.BuGn)
+fig.update_layout(title_text='Confirmed COVID-19 cases per day in US')
+fig.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/anshuls235/covid19-eda-predictions
+
+px.line(df_trend, x='Date', y='ln(Cases)', color='Country', title='COVID19 Cases growth for top 10 worst affected countries(Logarithmic Scale)')
+px.line(df_trend, x='Date', y='ln(Deaths)', color='Country', title='COVID19 Deaths growth for top 10 worst affected countries(Logarithmic Scale)')
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #29
+
+ORIGINAL MARKDOWN:
+------------------------------
+From this graph we can say that,with in short period of time virus has spread more in US and kept in 1st place
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+From this graph we can say that,with in short period of time virus has spread more in US and kept in 1st place
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/timeseries-forecasting-of-covid-19-week-3-prophet
+
+df_by_date = pd.DataFrame(train.fillna('NA').groupby(['Country_Region','Date'])['ConfirmedCases'].sum().sort_values().reset_index())
+
+fig = px.bar(df_by_date.loc[(df_by_date['Country_Region'] == 'Italy') &(df_by_date.Date >= '2020-03-01')].sort_values('ConfirmedCases',ascending = False), 
+             x='Date', y='ConfirmedCases', color="ConfirmedCases", color_continuous_scale=px.colors.sequential.BuGn)
+fig.update_layout(title_text='Confirmed COVID-19 cases per day in Italy')
+fig.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/eda-covid-19-week-2
+
+df_by_date = pd.DataFrame(train.fillna('NA').groupby(['Country_Region','Date'])['ConfirmedCases'].sum().sort_values().reset_index())
+
+fig = px.bar(df_by_date.loc[(df_by_date['Country_Region'] == 'Italy') &(df_by_date.Date >= '2020-03-01')].sort_values('ConfirmedCases',ascending = False), 
+             x='Date', y='ConfirmedCases', color="ConfirmedCases", color_continuous_scale=px.colors.sequential.BuGn)
+fig.update_layout(title_text='Confirmed COVID-19 cases per day in Italy')
+fig.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/ashishpatel26/rossman-stores-sales-analysis
+
+ax = train.groupby('DayOfWeek')[['SalesPerCustomer']].mean().plot(figsize=(15,5), marker='o')
+ax.set_ylabel('€')
+plt.title('Average spend per customer per day of the week');
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ITEM #30
+
+ORIGINAL MARKDOWN:
+------------------------------
+In italy, Spreading of virus done for a long time and thus effected more people. But in US within short period the spread is more in this way US had a great impactConfirmed COVID-19 cases per day in China
+==============================
+RECOMMENDED MARKDOWN:
+------------------------------
+In italy, Spreading of virus done for a long time and thus effected more people. But in US within short period the spread is more in this way US had a great impact
+==============================
+ORIGINAL CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/timeseries-forecasting-of-covid-19-week-3-prophet
+
+df_by_date = pd.DataFrame(train.fillna('NA').groupby(['Country_Region','Date'])['ConfirmedCases'].sum().sort_values().reset_index())
+
+fig = px.bar(df_by_date.loc[(df_by_date['Country_Region'] == 'China') &(df_by_date.Date >= '2020-01-01')].sort_values('ConfirmedCases',ascending = False), 
+             x='Date', y='ConfirmedCases', color="ConfirmedCases", color_continuous_scale=px.colors.sequential.BuGn)
+fig.update_layout(title_text='Confirmed COVID-19 cases per day in China')
+fig.show()
+==============================
+RECOMMENDED CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/eswarchandt/eda-covid-19-week-2
+
+df_by_date = pd.DataFrame(train.fillna('NA').groupby(['Country_Region','Date'])['ConfirmedCases'].sum().sort_values().reset_index())
+
+fig = px.bar(df_by_date.loc[(df_by_date['Country_Region'] == 'China') &(df_by_date.Date >= '2020-01-01')].sort_values('ConfirmedCases',ascending = False), 
+             x='Date', y='ConfirmedCases', color="ConfirmedCases", color_continuous_scale=px.colors.sequential.BuGn)
+fig.update_layout(title_text='Confirmed COVID-19 cases per day in China')
+fig.show()
+==============================
+RECOMMENDED MACHINE LEARNING CODE:
+------------------------------
+# Reference: https://www.kaggle.com/code/abhinand05/covid-19-digging-a-bit-deeper
+
+fig = px.bar(europe_grouped_latest.sort_values('recovered', ascending=False)[:10][::-1], 
+             x='recovered', y='country',
+             title='Recovered Cases in EUROPE', text='recovered', orientation='h', color_discrete_sequence=['cyan'])
+fig.show()
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
